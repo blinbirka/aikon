@@ -9,7 +9,12 @@ import AppKit
 enum AppIcon {
     /// 512×512, the standard largest raw size for an app icon; AppKit scales
     /// it down for the Dock and window title bar as needed.
-    static let image: NSImage = draw(size: 512)
+    ///
+    /// `@MainActor` because `NSImage` isn't `Sendable`: without it, Swift 6.1
+    /// rejects the whole file as an unsafe shared global, so anyone on
+    /// Xcode 16 couldn't build the app at all. The only caller is on the main
+    /// actor already.
+    @MainActor static let image: NSImage = draw(size: 512)
 
     private static func draw(size: CGFloat) -> NSImage {
         NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in

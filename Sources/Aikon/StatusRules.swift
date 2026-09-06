@@ -26,10 +26,13 @@ enum StatusRules {
            marker.at.addingTimeInterval(markerSlack) >= input.touched {
             return (marker.status, marker.at)
         }
+        // Spelled `.some`/`.none` rather than `true`/`false`/`nil`: Swift 6.3
+        // accepts the short form as exhaustive, Swift 6.1 does not, and the
+        // short form made the package impossible to build on Xcode 16.
         switch input.working {
-        case true:
+        case .some(true):
             return (.working, input.touched)
-        case false:
+        case .some(false):
             // The sentinel can be left over from a previous turn if its process
             // was killed. It shows the correct end time only when it isn't older
             // than the last transcript write — a stale .quiet can lag hours
@@ -37,7 +40,7 @@ enum StatusRules {
             let since = (input.quiet.map { $0 >= input.touched ? $0 : input.touched })
                 ?? input.touched
             return (.finished, since)
-        case nil:
+        case .none:
             return nil
         }
     }
