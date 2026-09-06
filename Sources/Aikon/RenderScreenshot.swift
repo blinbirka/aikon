@@ -24,7 +24,7 @@ enum RenderScreenshot {
         let model = PanelModel.renderPreview()
         let composition = ScreenshotComposition(model: model)
 
-        guard let png = render(composition, size: ScreenshotComposition.canvasSize) else {
+        guard let png = render(composition, width: ScreenshotComposition.canvasWidth) else {
             FileHandle.standardError.write(Data("render-screenshot: failed to draw the menu\n".utf8))
             exit(1)
         }
@@ -37,19 +37,31 @@ enum RenderScreenshot {
         exit(0)
     }
 
-    /// Off-screen, retina (2x) render of `view` at `size` logical points.
+    /// Off-screen, retina (2x) render of `view` at `width` logical points, as
+    /// tall as its content turns out to be.
     /// The bitmap is built by hand at 2x pixel dimensions — rather than
     /// asking `bitmapImageRepForCachingDisplay(in:)` to pick a scale — so the
     /// output is always retina, whether or not this process has an attached
     /// screen at all (it doesn't, in the CI/script use case this exists for).
     @MainActor
-    private static func render(_ view: some View, size: CGSize, scale: CGFloat = 2) -> Data? {
-        let hostingView = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
+    private static func render(_ view: some View, width: CGFloat, scale: CGFloat = 2) -> Data? {
+        let hostingView = NSHostingView(rootView: view.frame(width: width))
         // Forces every appearance-dependent color in the app (see
         // `Color.themed` in `MenuView.swift`, and `Theme.swift`) to resolve
         // the same way regardless of the machine's actual system setting —
         // the screenshot must look identical everywhere it's generated.
         hostingView.appearance = NSAppearance(named: .darkAqua)
+        // Nothing behind the menu: the PNG keeps an alpha channel so it sits on
+        // whatever colour the page around it happens to be.
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+
+        // Height comes from the laid-out content rather than a fixed canvas.
+        // The fixed canvas was 900x1100 with the menu floating in the middle of
+        // it, so most of the image was empty space.
+        var size = hostingView.fittingSize
+        size.width = width
+        guard size.height > 0 else { return nil }
         hostingView.setFrameSize(size)
         hostingView.layoutSubtreeIfNeeded()
 
@@ -80,38 +92,37 @@ enum RenderScreenshot {
 /// real status item) sitting above the menu itself — reproducing the
 /// rounded corners and drop shadow that a real `MenuBarExtra` popover gets
 /// for free from the system, since here the menu is drawn standalone, with
-/// no real popover behind it. All on a calm, slightly lighter backdrop with
-/// generous margin, sized for dropping straight into the README.
+/// no real popover behind it. Drawn on transparency and cropped to its own
+/// content, so the PNG carries no empty space and no background colour of its
+/// own into whatever page it lands on.
 struct ScreenshotComposition: View {
     let model: PanelModel
 
-    /// ~900×1100 logical points → 1800×2200 px at the 2x this always renders at.
-    static let canvasSize = CGSize(width: 900, height: 1100)
+    /// Logical points; the image is twice this wide, since it always renders
+    /// at 2x. The height is whatever the content needs.
+    static let canvasWidth: CGFloat = 620
 
     private let margin: CGFloat = 32
     private let stripHeight: CGFloat = 30
     private let gap: CGFloat = 22
 
     // Deliberately not from `Theme`: those tokens are tuned for a real
-    // window's content area, not a standalone hero shot. The backdrop is
-    // kept a little lighter than the card, per the approved composition.
-    private let backdropColor = Color(nsColor: NSColor(rgb: 0x3A3B40))
+    // window's content area, not a standalone hero shot.
     private let stripColor = Color(nsColor: NSColor(rgb: 0x1C1C1F))
     private let cardColor = Color(nsColor: NSColor(rgb: 0x242429))
 
     var body: some View {
-        ZStack {
-            backdropColor
-            VStack(alignment: .trailing, spacing: gap) {
-                menuBarStrip
-                MenuView(model: model)
-                    .background(cardColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .shadow(color: .black.opacity(0.5), radius: 30, y: 16)
-            }
-            .padding(.horizontal, margin)
+        VStack(alignment: .trailing, spacing: gap) {
+            menuBarStrip
+            MenuView(model: model)
+                .background(cardColor)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shadow(color: .black.opacity(0.35), radius: 24, y: 10)
         }
-        .frame(width: Self.canvasSize.width, height: Self.canvasSize.height)
+        // The margin is what keeps the shadow from being clipped off now that
+        // the image is cropped to the content.
+        .padding(margin)
+        .frame(width: Self.canvasWidth)
         .preferredColorScheme(.dark)
     }
 
