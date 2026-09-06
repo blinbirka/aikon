@@ -42,6 +42,20 @@ write_marker() {
   printf '%s' "$2" > "$STATE_DIR/$1" 2>/dev/null
 }
 
+# Pulls a single string field out of a flat JSON object using only shell
+# builtins + sed — no python3, no jq, nothing beyond what a stock macOS
+# ships. Good enough for this payload: both fields we read
+# (hook_event_name, session_id) are always plain JSON strings, never
+# nested objects/arrays, and Claude Code's hook JSON is a single object.
+# Tolerates spaces around the colon and the field appearing anywhere in
+# the payload; does not attempt to unescape JSON string escapes, since
+# neither field is expected to contain any.
+json_field() {
+  # $1 = field name, $2 = raw JSON text (may span multiple lines)
+  printf '%s' "$2" | tr '\n' ' ' | sed -E -n \
+    "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"([^\"]*)\".*/\\1/p" | head -n 1
+}
+
 main() {
   mkdir -p "$STATE_DIR" 2>/dev/null || return 0
 
@@ -49,27 +63,20 @@ main() {
   payload=$(cat) || return 0
   [ -z "$payload" ] && return 0
 
-  # Pull event name / session id out of the hook JSON. Field names match
-  # Claude Code's documented hook payload (hook_event_name, session_id).
-  # Printed one per line so bash doesn't need a JSON parser of its own.
-  local parsed
-  parsed=$(printf '%s' "$payload" | python3 -c '
-import json, sys
-try:
-    d = json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-print(d.get("hook_event_name", ""))
-print(d.get("session_id", ""))
-' 2>/dev/null)
-  [ -z "$parsed" ] && return 0
-
+  # Field names match Claude Code's documented hook payload
+  # (hook_event_name, session_id).
   local event session
-  event=$(printf '%s\n' "$parsed" | sed -n '1p')
-  session=$(printf '%s\n' "$parsed" | sed -n '2p')
+  event=$(json_field "hook_event_name" "$payload")
+  session=$(json_field "session_id" "$payload")
 
   [ -z "$event" ] && return 0
   [ -z "$session" ] && return 0
+
+  # session_id ends up in a file path below — refuse anything that could
+  # escape STATE_DIR instead of trusting it blindly.
+  case "$session" in
+    */*|*..*|*$'\n'*) return 0 ;;
+  esac
 
   local now
   now=$(date +%s)
