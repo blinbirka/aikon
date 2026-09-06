@@ -1,0 +1,134 @@
+/* Pinned projects group */
+"pinned.title" = "PINNED";
+
+/* Session status words */
+"status.needsPermission" = "Needs permission";
+"status.needsAnswer" = "Needs answer";
+"status.finished" = "Done";
+"status.working" = "Working";
+
+/* Limits block */
+"limits.title" = "LIMITS";
+"limits.session" = "Session (5 h)";
+"limits.week" = "Week (7 days)";
+"limits.resetsIn" = "resets in %@";
+
+/* Relative age */
+"age.justNow" = "just now";
+"age.minutes" = "%d min";
+"age.hours" = "%d h";
+"age.days" = "%d d";
+
+/* Hook installer errors */
+"hook.error.resourceMissing" = "Couldn't find the hook script inside the app bundle.";
+"hook.error.settingsCorrupt" = "Claude settings file at %@ isn't valid JSON (%@). Fix or restore it, then try again.";
+"hook.error.fileSystem" = "Couldn't update Claude settings: %@";
+
+/* Menu bar footer */
+"menu.updateAvailable" = "Version %@ available";
+"menu.settings" = "Settings…";
+"menu.quit" = "Quit";
+
+/* Settings window: sidebar */
+"settings.brand.name" = "Aikon";
+"settings.nav.tagline" = "menu bar";
+"settings.nav.projects" = "Projects";
+"settings.nav.settings" = "Settings";
+"settings.nav.about" = "About";
+
+/* Settings window: Projects tab */
+"settings.projects.addButton" = "Add project";
+"settings.projects.removeButton" = "Remove project";
+"settings.projects.chooseIcon" = "Choose project icon";
+"settings.projects.iconHint" = "Click the square on the left to change a project's icon";
+
+/* Settings window: Projects tab — hook banner */
+"settings.projects.hookBanner.title" = "Statuses don't differ yet";
+"settings.projects.hookBanner.description" = "Aikon can see a session is going, but not whether Claude is waiting for your answer. Turning this on adds one line to Claude Code's settings.";
+"settings.projects.hookBanner.enable" = "Turn on";
+"settings.projects.hookBanner.dismiss" = "Dismiss";
+
+/* Settings window: Projects tab — mode switch */
+"settings.projects.mode.title" = "What to show in the menu";
+"settings.projects.mode.pinned" = "Pinned";
+"settings.projects.mode.running" = "Running only";
+"settings.projects.mode.pinned.description" = "Pinned projects are always visible in the menu, even when there's no activity in them. An inactive project can still be opened quickly from the menu bar.";
+"settings.projects.mode.running.description" = "Only projects Claude is currently working in appear in the menu.";
+
+/* Settings window: Projects tab — pin button */
+"settings.projects.pin.add" = "Pin";
+"settings.projects.pin.remove" = "Unpin";
+
+/* Settings window: Projects tab — icon picker */
+"settings.projects.icon.searchPlaceholder" = "Search: folder, rocket, cat…";
+"settings.projects.icon.recent" = "Recent";
+"settings.projects.icon.noMatches" = "No matches";
+"settings.projects.icon.choosePicture" = "Choose picture…";
+"settings.projects.icon.removePicture" = "Remove picture";
+
+/* Settings window: Projects tab — empty state */
+"settings.projects.empty.title" = "Nothing here yet";
+"settings.projects.empty.description" = "Open a folder in VS Code and it'll show up here, ready to be given a name and an icon.";
+
+/* Settings window: Projects tab — error state */
+"settings.projects.error.title" = "Settings file can't be read";
+"settings.projects.error.description" = "Aikon is running on its defaults and won't touch the file, so whatever was in it isn't lost.";
+"settings.projects.error.showInFinder" = "Show in Finder";
+
+/* Settings window: "Settings" section — General group */
+"settings.group.general" = "General";
+"settings.general.language.title" = "Interface language";
+"settings.general.language.system" = "System";
+"settings.general.language.en" = "English";
+"settings.general.language.ru" = "Русский";
+"settings.general.launchAtLogin" = "Launch at login";
+"settings.general.checkForUpdates" = "Check for updates";
+
+/* Settings window: "Settings" section — Statuses group */
+"settings.group.statuses" = "Statuses";
+"settings.hook.title" = "Claude Code hook";
+"settings.hook.status.installed" = "Installed";
+"settings.hook.status.notInstalled" = "Not installed";
+"settings.hook.status.unavailable" = "Unavailable: %@";
+"settings.hook.description.prefix" = "Without the hook, the panel can't tell \"Claude is thinking\" from \"Claude is waiting for your answer.\" The hook adds one line to ";
+"settings.hook.description.suffix" = ", making a backup first — any other hooks you already have stay untouched.";
+"settings.hook.install" = "Install";
+"settings.hook.remove" = "Remove";
+
+/* Settings window: "Settings" section — Files group */
+"settings.group.files" = "Files";
+"settings.files.config.title" = "Aikon settings";
+"settings.files.config.open" = "Open";
+"settings.files.sessions.title" = "Claude Code sessions";
+"settings.files.sessions.change" = "Change…";
+
+/* Settings window: "About" section */
+"settings.about.tagline" = "Shows AI session statuses right inside your IDE. Currently works with Claude in VS Code.";
+"settings.about.license" = "MIT";
+"settings.about.macosRequirement" = "macOS 14+";
+"settings.about.update.upToDate" = "Latest";
+"settings.about.update.available" = "Version %@ available";
+"settings.about.update.openRelease" = "Open release page";
+
+"settings.about.qa.title" = "Questions";
+"settings.about.qa1.question" = "Where do the statuses come from?";
+"settings.about.qa1.answer" = "From Claude Code session transcripts, in the folder set in Settings (~/.claude/projects by default); the list of open folders comes straight from VS Code.";
+"settings.about.qa2.question" = "Does anything get sent over the network?";
+"settings.about.qa2.answer" = "Only a request to GitHub for the latest version number, at most once every three days. You can turn that off in Settings. Nothing else goes out: no analytics, no project names, no session text.";
+"settings.about.qa3.question" = "Why aren't all my folders in the menu?";
+"settings.about.qa3.answer" = "Only folders with an active session, plus any you've pinned.";
+"settings.about.qa4.question" = "Why don't statuses look different from each other?";
+"settings.about.qa4.prefix" = "The hook is probably not installed — turn it on in ";
+"settings.about.qa4.link" = "Settings, under Statuses";
+"settings.about.qa4.suffix" = ".";
+
+"settings.group.author" = "Author";
+"settings.about.author.name" = "Anna Dorogova";
+"settings.about.author.role" = "design and code";
+"settings.about.author.github" = "GitHub";
+"settings.about.author.website" = "Website";
+"settings.about.author.linkedin" = "LinkedIn";
+"settings.about.author.email" = "Email";
+"settings.about.opensource.title" = "Source is open";
+"settings.about.opensource.description" = "MIT licence.";
+"settings.about.opensource.repo" = "Repository";

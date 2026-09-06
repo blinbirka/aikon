@@ -1,0 +1,134 @@
+/* Pinned projects group */
+"pinned.title" = "ЗАКРЕПЛЁННЫЕ";
+
+/* Session status words */
+"status.needsPermission" = "ждёт разрешения";
+"status.needsAnswer" = "ждёт ответа";
+"status.finished" = "закончил";
+"status.working" = "работает";
+
+/* Limits block */
+"limits.title" = "ЛИМИТЫ";
+"limits.session" = "Сессия (5 ч)";
+"limits.week" = "Неделя (7 дней)";
+"limits.resetsIn" = "сброс через %@";
+
+/* Relative age */
+"age.justNow" = "только что";
+"age.minutes" = "%d мин";
+"age.hours" = "%d ч";
+"age.days" = "%d дн";
+
+/* Ошибки установки хука */
+"hook.error.resourceMissing" = "Не нашёл скрипт хука внутри приложения.";
+"hook.error.settingsCorrupt" = "Файл настроек Claude по пути %@ повреждён (%@). Почини или восстанови его и попробуй снова.";
+"hook.error.fileSystem" = "Не удалось обновить настройки Claude: %@";
+
+/* Низ меню */
+"menu.updateAvailable" = "Доступна версия %@";
+"menu.settings" = "Настройки…";
+"menu.quit" = "Завершить";
+
+/* Окно настроек: сайдбар */
+"settings.brand.name" = "Aikon";
+"settings.nav.tagline" = "меню-бар";
+"settings.nav.projects" = "Проекты";
+"settings.nav.settings" = "Настройки";
+"settings.nav.about" = "О программе";
+
+/* Окно настроек: вкладка «Проекты» */
+"settings.projects.addButton" = "Добавить проект";
+"settings.projects.removeButton" = "Удалить проект";
+"settings.projects.chooseIcon" = "Выбрать значок проекта";
+"settings.projects.iconHint" = "Значок проекта меняется нажатием на квадратик слева";
+
+/* Окно настроек: вкладка «Проекты» — баннер про хук */
+"settings.projects.hookBanner.title" = "Статусы пока не различаются";
+"settings.projects.hookBanner.description" = "Aikon видит, что сессия идёт, но не знает, ждёт ли Claude твоего ответа. Это включает хук — одна строка в настройках Claude Code.";
+"settings.projects.hookBanner.enable" = "Включить";
+"settings.projects.hookBanner.dismiss" = "Скрыть";
+
+/* Окно настроек: вкладка «Проекты» — переключатель режима */
+"settings.projects.mode.title" = "Что показывать в меню";
+"settings.projects.mode.pinned" = "Закреплённые";
+"settings.projects.mode.running" = "Только запущенные";
+"settings.projects.mode.pinned.description" = "Закреплённые проекты всегда видно в меню, даже если работа по ним не ведётся. Неактивный проект можно быстро открыть через меню-бар.";
+"settings.projects.mode.running.description" = "В меню только те проекты, где Claude сейчас работает.";
+
+/* Окно настроек: вкладка «Проекты» — кнопка пина */
+"settings.projects.pin.add" = "Закрепить";
+"settings.projects.pin.remove" = "Убрать из закреплённых";
+
+/* Окно настроек: вкладка «Проекты» — выбор значка */
+"settings.projects.icon.searchPlaceholder" = "Поиск: folder, rocket, cat…";
+"settings.projects.icon.recent" = "Недавние";
+"settings.projects.icon.noMatches" = "Ничего не нашлось";
+"settings.projects.icon.choosePicture" = "Выбрать картинку…";
+"settings.projects.icon.removePicture" = "Убрать картинку";
+
+/* Окно настроек: вкладка «Проекты» — пусто */
+"settings.projects.empty.title" = "Пока пусто";
+"settings.projects.empty.description" = "Откройте папку в VS Code — она появится здесь, и ей можно будет задать имя и значок.";
+
+/* Окно настроек: вкладка «Проекты» — ошибка */
+"settings.projects.error.title" = "Файл настроек не читается";
+"settings.projects.error.description" = "Aikon работает на настройках по умолчанию и файл не трогает, чтобы не потерять то, что в нём было.";
+"settings.projects.error.showInFinder" = "Показать в Finder";
+
+/* Окно настроек: раздел «Настройки» — группа «Общие» */
+"settings.group.general" = "Общие";
+"settings.general.language.title" = "Язык интерфейса";
+"settings.general.language.system" = "Системный";
+"settings.general.language.en" = "English";
+"settings.general.language.ru" = "Русский";
+"settings.general.launchAtLogin" = "Запускать при входе в систему";
+"settings.general.checkForUpdates" = "Проверять обновления";
+
+/* Окно настроек: раздел «Настройки» — группа «Статусы» */
+"settings.group.statuses" = "Статусы";
+"settings.hook.title" = "Хук Claude Code";
+"settings.hook.status.installed" = "Установлен";
+"settings.hook.status.notInstalled" = "Не установлен";
+"settings.hook.status.unavailable" = "Недоступно: %@";
+"settings.hook.description.prefix" = "Без хука панель не отличает «Claude думает» от «Claude ждёт ответа»; хук дописывает строку в ";
+"settings.hook.description.suffix" = ", резервная копия делается перед записью, чужие хуки остаются.";
+"settings.hook.install" = "Установить";
+"settings.hook.remove" = "Убрать";
+
+/* Окно настроек: раздел «Настройки» — группа «Файлы» */
+"settings.group.files" = "Файлы";
+"settings.files.config.title" = "Настройки Aikon";
+"settings.files.config.open" = "Открыть";
+"settings.files.sessions.title" = "Сессии Claude Code";
+"settings.files.sessions.change" = "Изменить…";
+
+/* Окно настроек: раздел «О программе» */
+"settings.about.tagline" = "Отображение статусов сессий AI внутри IDE. Сейчас работает с Claude в VS Code.";
+"settings.about.license" = "MIT";
+"settings.about.macosRequirement" = "macOS 14+";
+"settings.about.update.upToDate" = "Последняя";
+"settings.about.update.available" = "Доступна версия %@";
+"settings.about.update.openRelease" = "Открыть страницу релиза";
+
+"settings.about.qa.title" = "Вопросы";
+"settings.about.qa1.question" = "Откуда Aikon берёт статусы?";
+"settings.about.qa1.answer" = "Из транскриптов сессий Claude Code, папка задаётся в настройках, по умолчанию ~/.claude/projects; список открытых папок берётся у самого VS Code.";
+"settings.about.qa2.question" = "Уходит ли что-нибудь в сеть?";
+"settings.about.qa2.answer" = "Только запрос к GitHub за номером последней версии, не чаще раза в три дня. Проверку можно выключить в настройках. Больше ничего наружу не уходит: ни аналитики, ни имён проектов, ни текста сессий.";
+"settings.about.qa3.question" = "Почему в меню не все мои папки?";
+"settings.about.qa3.answer" = "Показываются те, где идёт сессия, плюс закреплённые.";
+"settings.about.qa4.question" = "Почему статусы не различаются?";
+"settings.about.qa4.prefix" = "Скорее всего не установлен хук, включается в ";
+"settings.about.qa4.link" = "настройках, раздел «Статусы»";
+"settings.about.qa4.suffix" = ".";
+
+"settings.group.author" = "Автор";
+"settings.about.author.name" = "Anna Dorogova";
+"settings.about.author.role" = "дизайн и код";
+"settings.about.author.github" = "GitHub";
+"settings.about.author.website" = "Сайт";
+"settings.about.author.linkedin" = "LinkedIn";
+"settings.about.author.email" = "Почта";
+"settings.about.opensource.title" = "Код открыт";
+"settings.about.opensource.description" = "Лицензия MIT.";
+"settings.about.opensource.repo" = "Репозиторий";
