@@ -37,14 +37,15 @@ enum RenderScreenshot {
         exit(0)
     }
 
-    /// Off-screen, retina (2x) render of `view` at `width` logical points, as
-    /// tall as its content turns out to be.
+    /// Off-screen render of `view` at `width` logical points, as tall as its
+    /// content turns out to be, at 4x pixel density: the shot is a hero image
+    /// people will zoom into, and 2x text looked soft.
     /// The bitmap is built by hand at 2x pixel dimensions — rather than
     /// asking `bitmapImageRepForCachingDisplay(in:)` to pick a scale — so the
     /// output is always retina, whether or not this process has an attached
     /// screen at all (it doesn't, in the CI/script use case this exists for).
     @MainActor
-    private static func render(_ view: some View, width: CGFloat, scale: CGFloat = 2) -> Data? {
+    private static func render(_ view: some View, width: CGFloat, scale: CGFloat = 4) -> Data? {
         let hostingView = NSHostingView(rootView: view.frame(width: width))
         // Forces every appearance-dependent color in the app (see
         // `Color.themed` in `MenuView.swift`, and `Theme.swift`) to resolve
@@ -77,7 +78,7 @@ enum RenderScreenshot {
             bytesPerRow: 0,
             bitsPerPixel: 0
         ) else { return nil }
-        // The pixel count above is 2x `size`; telling the rep its logical
+        // The pixel count above is `scale` times `size`; telling the rep its logical
         // size is still `size` is what makes those extra pixels "retina"
         // rather than just a bigger image — `cacheDisplay` reads this ratio
         // to pick its rendering scale.
