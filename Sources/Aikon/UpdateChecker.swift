@@ -1,6 +1,6 @@
 import Foundation
 
-/// Asks GitHub, at most once a day, whether a newer tagged release exists.
+/// Asks GitHub, at most once every three days, whether a newer tagged release exists.
 ///
 /// Every failure — no network, GitHub unreachable, rate-limited, a garbage
 /// body — is swallowed and treated as "no update found". This never shows

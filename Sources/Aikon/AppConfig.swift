@@ -38,6 +38,22 @@ struct ProjectConfig: Codable, Equatable {
     }
 }
 
+/// Decodes one `projects` array element leniently: a malformed entry (e.g.
+/// missing `path`/`name`, or one with an empty `path`/`name`) becomes `nil`
+/// instead of failing the whole array, so one bad line in a hand-edited
+/// config can't wipe out every other project.
+private struct LossyProjectConfig: Decodable {
+    let project: ProjectConfig?
+
+    init(from decoder: Decoder) throws {
+        if let value = try? ProjectConfig(from: decoder), !value.path.isEmpty, !value.name.isEmpty {
+            project = value
+        } else {
+            project = nil
+        }
+    }
+}
+
 enum AppLanguage: String, Codable {
     case system, en, ru
 }
@@ -129,7 +145,15 @@ struct AppConfig: Codable, Equatable {
         language = try c.decodeIfPresent(AppLanguage.self, forKey: .language) ?? .system
         launchAtLogin = try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
         sessionsPath = try c.decodeIfPresent(String.self, forKey: .sessionsPath) ?? AppConfig.defaultSessionsPath
-        projects = try c.decodeIfPresent([ProjectConfig].self, forKey: .projects) ?? []
+        // Decoded leniently, per element: one malformed entry — or `projects`
+        // being an unexpected shape entirely, e.g. a string — falls back to
+        // dropping just that entry (or all of them) rather than throwing and
+        // losing the rest of the config.
+        if let lossy = try? c.decodeIfPresent([LossyProjectConfig].self, forKey: .projects) {
+            projects = lossy.compactMap(\.project)
+        } else {
+            projects = []
+        }
         recentEmojis = try c.decodeIfPresent([String].self, forKey: .recentEmojis) ?? []
         checkForUpdates = try c.decodeIfPresent(Bool.self, forKey: .checkForUpdates) ?? true
         lastUpdateCheckAt = try c.decodeIfPresent(Date.self, forKey: .lastUpdateCheckAt)

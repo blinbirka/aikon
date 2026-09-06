@@ -74,6 +74,43 @@ import Foundation
     #expect(raw?["menuMode"] as? String == "running")
 }
 
+@Test func oneMalformedProjectEntryDoesNotWipeTheOthers() throws {
+    // Three good entries, one bad one (missing `name`) mixed in. The bad
+    // entry is dropped; the three good ones still load.
+    let json = """
+    {"projects":[
+        {"path":"/Users/example/Projects/alpha","name":"Alpha"},
+        {"path":"/Users/example/Projects/broken"},
+        {"path":"/Users/example/Projects/beta","name":"Beta"},
+        {"path":"/Users/example/Projects/gamma","name":"Gamma"}
+    ]}
+    """
+    let config = try JSONDecoder().decode(AppConfig.self, from: Data(json.utf8))
+    #expect(config.projects.map(\.name) == ["Alpha", "Beta", "Gamma"])
+}
+
+@Test func projectEntryWithEmptyPathIsDropped() throws {
+    let json = """
+    {"projects":[
+        {"path":"","name":"Empty path"},
+        {"path":"/Users/example/Projects/beta","name":"Beta"}
+    ]}
+    """
+    let config = try JSONDecoder().decode(AppConfig.self, from: Data(json.utf8))
+    #expect(config.projects.map(\.name) == ["Beta"])
+}
+
+@Test func completelyBrokenProjectsValueYieldsNoProjectsInsteadOfThrowing() throws {
+    // `projects` here is a string, not an array — the rest of the config
+    // must still decode instead of the whole thing throwing.
+    let json = """
+    {"version": 1, "projects": "not an array"}
+    """
+    let config = try JSONDecoder().decode(AppConfig.self, from: Data(json.utf8))
+    #expect(config.projects.isEmpty)
+    #expect(config.version == 1)
+}
+
 @Test func bootstrapSeedsFromOpenAndSessionFolders() {
     let config = AppConfig.bootstrapped(
         openFolders: ["/Users/example/Projects/alpha"],
