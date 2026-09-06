@@ -1,5 +1,15 @@
 import SwiftUI
 
+/// The one `UserDefaults` operation `PanelModel.seen` needs. Kept this narrow
+/// so an in-memory test double is trivial to write — see
+/// `PanelModel.defaults` for why that matters.
+protocol UnreadStore: AnyObject {
+    func dictionary(forKey key: String) -> [String: Any]?
+    func set(_ value: Any?, forKey key: String)
+}
+
+extension UserDefaults: UnreadStore {}
+
 enum Age {
     static func words(since: Date, now: Date = Date()) -> String {
         let secs = max(0, now.timeIntervalSince(since))
@@ -26,11 +36,22 @@ final class PanelModel: ObservableObject {
     /// whatever `UpdateChecker` last found — see `checkForUpdate()`.
     @Published private(set) var availableUpdate: String?
 
-    /// What's already been opened: session id → when it was opened. Survives a restart.
-    @Published private var seen: [String: Date] = {
-        let raw = UserDefaults.standard.dictionary(forKey: "seenSessions") as? [String: Double]
-        return (raw ?? [:]).mapValues { Date(timeIntervalSince1970: $0) }
-    }()
+    /// What's already been opened: session id → when it was opened. Survives a
+    /// restart. Loaded from `defaults` in `init`, since the initial value
+    /// depends on which store this instance was built with.
+    @Published private var seen: [String: Date] = [:]
+
+    /// Where `seen` is persisted — the one thing `markSeen`/`isUnread` need
+    /// from `UserDefaults`. `UserDefaults` itself round-trips through
+    /// `cfprefsd`, a system daemon that flushes `~/Library/Preferences/*.plist`
+    /// on its own schedule: even a suite created just for one test, then
+    /// deleted with `removePersistentDomain`, can have that file resurface
+    /// on disk seconds later from a write the daemon had already queued.
+    /// Depending on this narrow protocol instead of the concrete class lets
+    /// tests hand in a plain in-memory double — see
+    /// `PanelModelUnreadTests.InMemoryUnreadStore` — so unread-tracking tests
+    /// never touch the real daemon or leave a file behind.
+    private var defaults: UnreadStore = UserDefaults.standard
 
     /// Dot on the right: the session is done, and it hasn't been opened yet.
     func isUnread(_ session: Session) -> Bool {
@@ -39,13 +60,12 @@ final class PanelModel: ObservableObject {
         return session.since > openedAt
     }
 
-    func markSeen(_ session: Session) {
+    func markSeen(_ session: Session, now: Date = Date()) {
         // the session list is unbounded, but the read-marks aren't
-        let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
+        let cutoff = now.addingTimeInterval(-30 * 24 * 60 * 60)
         seen = seen.filter { $0.value > cutoff }
-        seen[session.id] = Date()
-        UserDefaults.standard.set(seen.mapValues(\.timeIntervalSince1970),
-                                  forKey: "seenSessions")
+        seen[session.id] = now
+        defaults.set(seen.mapValues(\.timeIntervalSince1970), forKey: "seenSessions")
     }
 
     /// Garbage in notify/state is swept once an hour, not every two seconds.
@@ -60,8 +80,21 @@ final class PanelModel: ObservableObject {
     // 10-second timeout is long enough for that to happen easily).
     private var updateCheckInFlight = false
 
-    init(configStore: ConfigStore = ConfigStore()) {
+    /// - Parameters:
+    ///   - defaults: backs the unread-tracking `seen` dictionary. Tests pass
+    ///     an in-memory double so they never touch the real `UserDefaults` —
+    ///     see `PanelModelUnreadTests`.
+    ///   - startRefreshing: when `false`, skips the initial `refresh()` call
+    ///     and never starts the 2-second timer, so a test can call
+    ///     `refresh()` itself, exactly when it wants a pass, instead of
+    ///     racing a real background timer it has no handle to stop.
+    init(configStore: ConfigStore = ConfigStore(), defaults: UnreadStore = UserDefaults.standard,
+         startRefreshing: Bool = true) {
         self.configStore = configStore
+        self.defaults = defaults
+        let raw = defaults.dictionary(forKey: "seenSessions") as? [String: Double]
+        seen = (raw ?? [:]).mapValues { Date(timeIntervalSince1970: $0) }
+        guard startRefreshing else { return }
         refresh()
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
@@ -71,8 +104,9 @@ final class PanelModel: ObservableObject {
     /// Skips `refresh()` and the timer entirely, and points `configStore` at
     /// a throwaway file instead of the real `~/.config/aikon/config.json` —
     /// this path must never read the user's config, transcripts, git repos,
-    /// or open VS Code windows. Every published property below is filled in
-    /// by hand instead. Used only by `renderPreview()`.
+    /// or open VS Code windows. `seen` stays empty instead of touching
+    /// `UserDefaults`, for the same reason. Every published property below is
+    /// filled in by hand instead. Used only by `renderPreview()`.
     private init(demo: Void) {
         configStore = ConfigStore(
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("aikon-render-config.json"),
@@ -119,8 +153,12 @@ final class PanelModel: ObservableObject {
         return model
     }
 
-    func refresh() {
-        let now = Date()
+    /// `now` drives every freshness check this makes (state markers, the
+    /// transcript index, the limits block) — a single instant instead of
+    /// several back-to-back `Date()` calls, and the knob a test needs to
+    /// place a transcript on either side of the 30-minute/30-day/etc.
+    /// cutoffs without racing the real clock.
+    func refresh(now: Date = Date()) {
         if now.timeIntervalSince(sweptAt) > 3600 {
             sweptAt = now
             StateReader.sweep(now: now)
@@ -141,9 +179,9 @@ final class PanelModel: ObservableObject {
         }
 
         let lookup = ProjectMatching.lookup(config)
-        let states = StateReader.readAll()
-        let quiets = StateReader.readQuiet()
-        let transcripts = TranscriptIndex.index()
+        let states = StateReader.readAll(now: now)
+        let quiets = StateReader.readQuiet(now: now)
+        let transcripts = TranscriptIndex.index(now: now)
 
         var sessions: [Session] = []
         for (id, entry) in transcripts {   // index() already returned only live ones
@@ -169,23 +207,9 @@ final class PanelModel: ObservableObject {
         // Claude Code creates a separate session file not just per window: service
         // launches and background-task wakeups get their own transcript too. Because
         // of this, one project could show up as three separate rows. The click still
-        // leads to the same folder either way, so only one row is kept per project.
-        //
-        // What to show when a folder has several sessions.
-        //
-        // A pending request always wins, even over the oldest one: markers ⚠️ and ❓
-        // only count if nothing was written to the transcript after them — which
-        // means that session really is stuck waiting, and can't be stale.
-        //
-        // Between "done" and "working", the deciding factor is the time of the last
-        // write, not importance. "Done" can't outrank "working": a session could
-        // write in the same second, and the row would show "done 39 minutes ago" —
-        // telling the user everything had stopped when work was still going on.
-        sessions = Dictionary(grouping: sessions, by: \.path).values.compactMap { group in
-            group.max { a, b in
-                (a.status.waitsForHer ? 1 : 0, a.touched) < (b.status.waitsForHer ? 1 : 0, b.touched)
-            }
-        }
+        // leads to the same folder either way, so only one row is kept per project —
+        // see `representative(of:)` for which one.
+        sessions = Dictionary(grouping: sessions, by: \.path).values.compactMap(Self.representative(of:))
         // waiting — newest to oldest, the one that just called out is on top
         waiting  = sessions.filter { $0.status.waitsForHer }.sorted { $0.since > $1.since }
         finished = sessions.filter { $0.status == .finished }.sorted { $0.since > $1.since }
@@ -208,7 +232,7 @@ final class PanelModel: ObservableObject {
         // VS Code session. Stale percentages are worse than none: the block only
         // shows up when the data is fresh, otherwise it's simply not in the menu.
         limits = LimitsReader.read().flatMap {
-            Date().timeIntervalSince($0.writtenAt) < 3600 ? $0 : nil
+            now.timeIntervalSince($0.writtenAt) < 3600 ? $0 : nil
         }
         counts = Counts(waiting: waiting.count, done: finished.count, busy: working.count)
 
@@ -221,6 +245,24 @@ final class PanelModel: ObservableObject {
         }
 
         Task { await refreshBranches(for: sessions.map(\.path)) }
+    }
+
+    /// What to show when a folder has several sessions — a service launch,
+    /// a background-task wakeup, and a real window can each leave their own
+    /// transcript for the same folder, and only one row is kept.
+    ///
+    /// A pending request always wins, even over the oldest one: markers ⚠️ and ❓
+    /// only count if nothing was written to the transcript after them — which
+    /// means that session really is stuck waiting, and can't be stale.
+    ///
+    /// Between "done" and "working", the deciding factor is the time of the last
+    /// write, not importance. "Done" can't outrank "working": a session could
+    /// write in the same second, and the row would show "done 39 minutes ago" —
+    /// telling the user everything had stopped when work was still going on.
+    static func representative(of group: [Session]) -> Session? {
+        group.max { a, b in
+            (a.status.waitsForHer ? 1 : 0, a.touched) < (b.status.waitsForHer ? 1 : 0, b.touched)
+        }
     }
 
     /// The one place a network request leaves this app. Runs off the timer

@@ -9,7 +9,10 @@ struct Limits: Equatable {
 }
 
 enum LimitsReader {
-    static let file = FileManager.default.homeDirectoryForCurrentUser
+    // A mutable var, not a let: tests point this at a throwaway file instead
+    // of the real `~/.claude/tools/notify/state/limits` — same pattern as
+    // `StateReader.dir`.
+    @MainActor static var file = FileManager.default.homeDirectoryForCurrentUser
         .appending(path: ".claude/tools/notify/state/limits")
 
     /// Line format: "H5 D7 writtenAt reset5 reset7".
@@ -33,7 +36,7 @@ enum LimitsReader {
                       sevenDayResetsAt: reset(4))
     }
 
-    static func read() -> Limits? {
+    @MainActor static func read() -> Limits? {
         guard let text = try? String(contentsOf: file, encoding: .utf8) else { return nil }
         return parse(text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
