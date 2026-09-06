@@ -10,13 +10,6 @@ enum Opener {
         open(absolute: project.path)
     }
 
-    /// `vscode://file/…` opened the folder as a new document — VS Code would open
-    /// ANOTHER window even when the project was already open in one. The `code` CLI
-    /// doesn't do that: it finds the window with that folder and switches to it.
-    /// Verified against live windows.
-    private static let codeCLI =
-        "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
-
     /// Which path to use to call VS Code. nil means the folder is no longer on
     /// disk: it could have been renamed or deleted while the window was open, and
     /// in that case `code` would open an empty window at a nonexistent path
@@ -39,27 +32,42 @@ enum Opener {
             return
         }
 
-        if FileManager.default.isExecutableFile(atPath: codeCLI) {
+        guard let editor = Editor.preferred() else {
+            // Nothing to hand the folder to. Opening it in Finder means the
+            // click still does something visible instead of silently nothing.
+            FileHandle.standardError.write(
+                Data("panel: no VS Code-family editor installed, opening \(path) in Finder\n"
+                    .utf8))
+            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+            return
+        }
+
+        // `<scheme>://file/…` opens the folder as a new document — the editor
+        // would open ANOTHER window even when the project was already open in
+        // one. The CLI shim doesn't do that: it finds the window with that
+        // folder and switches to it. Verified against live windows.
+        let cli = editor.appURL.appending(path: "Contents/Resources/app/bin/\(editor.cliName)")
+        if FileManager.default.isExecutableFile(atPath: cli.path) {
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: codeCLI)
+            process.executableURL = cli
             process.arguments = [path]
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice
             if (try? process.run()) != nil {
-                bringVSCodeForward()
+                bringForward(editor)
                 return
             }
         }
 
-        // fallback path, in case VS Code isn't installed where expected
+        // fallback path, in case the CLI shim is missing or fails to launch
         let encoded = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
-        guard let url = URL(string: "vscode://file/\(encoded)") else { return }
+        guard let url = URL(string: "\(editor.urlScheme)://file/\(encoded)") else { return }
         NSWorkspace.shared.open(url)
     }
 
-    private static func bringVSCodeForward() {
+    private static func bringForward(_ editor: Editor) {
         let running = NSRunningApplication.runningApplications(
-            withBundleIdentifier: "com.microsoft.VSCode")
+            withBundleIdentifier: editor.bundleID)
         running.first?.activate()
     }
 }

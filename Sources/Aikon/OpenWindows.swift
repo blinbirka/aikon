@@ -8,21 +8,28 @@ import AppKit
 /// progress" than how recently its file was touched.
 @MainActor
 enum OpenWindows {
-    private static let storage = FileManager.default.homeDirectoryForCurrentUser
-        .appending(path: "Library/Application Support/Code/User/globalStorage/storage.json")
+    /// Each VS Code-family editor keeps its window state under its own
+    /// nameShort folder, so the path can only be known once we've picked
+    /// which editor is in use.
+    private static func storage(for editor: Editor) -> URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appending(path: "Library/Application Support/\(editor.storageFolderName)"
+                       + "/User/globalStorage/storage.json")
+    }
 
-    /// canonical path → the path the folder is ACTUALLY OPEN with in VS Code.
+    /// canonical path → the path the folder is ACTUALLY OPEN with in the editor.
     /// These differ when a symlink points at the real folder: Claude Code and
-    /// VS Code can each remember a different variant of the same folder.
+    /// the editor can each remember a different variant of the same folder.
     private static var cache: (at: Date, byCanonical: [String: String])?
     private static let ttl: TimeInterval = 10
 
-    /// storage.json stays on disk after VS Code quits and keeps listing windows
-    /// that no longer exist. Without this check, a closed editor would keep
-    /// sessions in the menu for a full day.
+    /// storage.json stays on disk after the editor quits and keeps listing
+    /// windows that no longer exist. Without this check, a closed editor
+    /// would keep sessions in the menu for a full day.
     static var isVSCodeRunning: () -> Bool = {
-        !NSRunningApplication.runningApplications(
-            withBundleIdentifier: "com.microsoft.VSCode").isEmpty
+        guard let editor = Editor.preferred() else { return false }
+        return !NSRunningApplication.runningApplications(
+            withBundleIdentifier: editor.bundleID).isEmpty
     }
 
     /// The last successfully parsed list. VS Code rewrites storage.json in full,
@@ -72,8 +79,8 @@ enum OpenWindows {
         if let cache, Date().timeIntervalSince(cache.at) < ttl { return cache.byCanonical }
 
         var found: [String: String] = [:]
-        if isVSCodeRunning() {
-            if let data = try? Data(contentsOf: storage), let parsed = parse(data) {
+        if isVSCodeRunning(), let editor = Editor.preferred() {
+            if let data = try? Data(contentsOf: storage(for: editor)), let parsed = parse(data) {
                 found = parsed
                 lastGood = parsed
             } else {
