@@ -20,12 +20,22 @@ trap 'rm -rf "$WORK"' EXIT
 git -C "$REPO" archive HEAD | tar -x -C "$WORK"
 
 cd "$WORK"
-bash scripts/bundle.sh
+bash scripts/bundle.sh "$VERSION"
 
 ZIP="$REPO/Aikon-v$VERSION.zip"
 rm -f "$ZIP"
-# ditto, not zip: it preserves the bundle structure and permissions macOS needs.
-ditto -c -k --keepParent build/Aikon.app "$ZIP"
+# ditto, not zip: it preserves the bundle structure, the code signature and the
+# permissions macOS needs. --norsrc/--noextattr keep the ._AppleDouble stubs out
+# of the archive; --noqtn stops a quarantine flag from being archived along.
+ditto -c -k --keepParent --norsrc --noextattr --noqtn build/Aikon.app "$ZIP"
+
+# Verify the archive the way a stranger will meet it: unpack it somewhere else
+# and check that the signature survived the round trip. A bundle that fails here
+# opens as "Aikon is damaged and can't be opened" on someone else's Mac.
+CHECK="$(mktemp -d /private/tmp/aikon-verify.XXXXXX)"
+ditto -x -k "$ZIP" "$CHECK"
+codesign --verify --deep --strict "$CHECK/Aikon.app"
+rm -rf "$CHECK"
 
 echo "built: $ZIP"
 if strings "$WORK/build/Aikon.app/Contents/MacOS/Aikon" | grep -q "$HOME"; then
