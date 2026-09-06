@@ -10,13 +10,35 @@ jobs:
   test:
     # Xcode ships the test frameworks, so this has to run on a macOS image
     # rather than Linux: Swift Testing and XCTest both live inside Xcode.app.
-    runs-on: macos-14
+    #
+    # Not macos-14: its default Xcode is 15.4, which is Swift 5.10, and this
+    # package declares swift-tools-version 6.0 -- every run on that image died
+    # at the first build. That image is also being retired during 2026.
+    # macos-15 is the oldest image whose default toolchain is Swift 6; running
+    # macos-latest alongside it catches breakage from a newer Swift early.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Show toolchain
-        run: swift --version
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Check the toolchain is new enough
+        run: |
+          version=$(swift --version 2>&1 | sed -n 's/.*Swift version \([0-9]*\)\..*/\1/p' | head -n 1)
+          if [ -z "$version" ] || [ "$version" -lt 6 ]; then
+            echo "This package needs Swift 6 or newer; this runner has:" >&2
+            swift --version >&2
+            exit 1
+          fi
 
       - name: Build
         run: swift build -v
@@ -24,5 +46,5 @@ jobs:
       - name: Test
         run: swift test
 
-      - name: Build the app bundle
+      - name: Build and sign the app bundle
         run: bash scripts/bundle.sh
