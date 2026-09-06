@@ -11,7 +11,11 @@ final class AikonAppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-@main
+// Not `@main` — entry is `main.swift`, which checks for the hidden
+// `--render-screenshot` flag before handing off to `AikonApp.main()` below
+// (the default the `App` protocol provides). Checking there, rather than
+// here, matters: by the time any of `AikonApp`'s own code could run, SwiftUI
+// has already built the `MenuBarExtra` scene and put an icon in the menu bar.
 struct AikonApp: App {
     @NSApplicationDelegateAdaptor(AikonAppDelegate.self) private var appDelegate
     @StateObject private var model = PanelModel()

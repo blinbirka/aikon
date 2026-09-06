@@ -68,6 +68,57 @@ final class PanelModel: ObservableObject {
         }
     }
 
+    /// Skips `refresh()` and the timer entirely, and points `configStore` at
+    /// a throwaway file instead of the real `~/.config/aikon/config.json` —
+    /// this path must never read the user's config, transcripts, git repos,
+    /// or open VS Code windows. Every published property below is filled in
+    /// by hand instead. Used only by `renderPreview()`.
+    private init(demo: Void) {
+        configStore = ConfigStore(
+            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("aikon-render-config.json"),
+            openFolders: { [] },
+            sessionFolders: { [] })
+    }
+
+    /// A model stocked with fixed, made-up demo data — no disk, git, or
+    /// network access anywhere in it. Built for `RenderScreenshot`, which
+    /// draws this into the README's menu screenshot so the picture never
+    /// shows the author's real projects.
+    static func renderPreview() -> PanelModel {
+        let now = Date()
+        func project(_ name: String) -> Project {
+            Project(path: "/demo/\(name)", name: name, emoji: nil, iconPath: nil)
+        }
+        func session(_ id: String, _ projectName: String, branch: String,
+                     status: SessionStatus, minutesAgo: Double) -> Session {
+            let since = now.addingTimeInterval(-minutesAgo * 60)
+            return Session(id: id, path: "/demo/\(projectName)", status: status,
+                           since: since, touched: since,
+                           project: project(projectName), branch: branch)
+        }
+
+        let model = PanelModel(demo: ())
+        model.waiting = [
+            session("demo-website", "Website", branch: "main",
+                    status: .needsAnswer, minutesAgo: 2),
+            session("demo-api", "API", branch: "api/rate-limits",
+                    status: .needsPermission, minutesAgo: 6),
+        ]
+        model.finished = [
+            session("demo-docs", "Docs", branch: "main",
+                    status: .finished, minutesAgo: 14),
+        ]
+        model.working = [
+            session("demo-analytics", "Analytics", branch: "spike/funnels",
+                    status: .working, minutesAgo: 0),
+        ]
+        model.pinnedProjects = [project("Design System"), project("Infra"), project("Sandbox")]
+        model.counts = Counts(waiting: model.waiting.count,
+                              done: model.finished.count,
+                              busy: model.working.count)
+        return model
+    }
+
     func refresh() {
         let now = Date()
         if now.timeIntervalSince(sweptAt) > 3600 {

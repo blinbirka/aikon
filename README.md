@@ -5,7 +5,7 @@
 Aikon shows the status of AI coding sessions inside your IDE. Right now it
 works with Claude in VS Code.
 
-![Aikon in the menu bar](docs/demo.gif)
+![Aikon in the menu bar](docs/screenshot.png)
 
 Every folder with a session is in the menu, with its state and the time since
 the last activity. Click a line and that folder's VS Code window comes to the
