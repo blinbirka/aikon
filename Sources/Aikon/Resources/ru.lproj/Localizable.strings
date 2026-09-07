@@ -29,8 +29,9 @@
 "menu.settings" = "Настройки…";
 "menu.quit" = "Завершить";
 "menu.empty.title" = "Пока ничего нет";
-"menu.empty.body" = "Запусти Claude Code в любом проекте, и он появится здесь.";
+"menu.empty.body" = "Сессии появятся здесь, как только запустится Claude Code.";
 "menu.empty.installHook" = "Настроить хук статусов…";
+"menu.empty.editors" = "VS Code · Cursor · Windsurf · VSCodium";
 
 /* Окно настроек: сайдбар */
 "settings.brand.name" = "Aikon";

@@ -57,31 +57,54 @@ struct MenuView: View {
     /// The menu with nothing in it at all. Without this block a fresh install
     /// opens on Settings… and Quit alone, which reads as broken rather than as
     /// empty — and says nothing about the one setup step that may be missing.
+    ///
+    /// The mark is Aikon's own, not Claude's: pointing at compatibility with
+    /// someone else's logo is a trademark question this app doesn't need to
+    /// open, and the body text already names Claude Code in words.
     private func emptyState() -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+        VStack(spacing: 0) {
+            BrandMark(size: 40, cornerRadius: Theme.Radius.lg, markSize: 17)
+
             Text(L.string("menu.empty.title"))
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
+                .padding(.top, Theme.Spacing.md)
+
             Text(L.string("menu.empty.body"))
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundStyle(Theme.textDim)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Theme.Spacing.xs)
+
             if model.needsHookSetup {
                 Button {
                     NSApp.keyWindow?.close()
                     NotificationCenter.default.post(name: .aikonOpenSettings, object: nil)
                 } label: {
                     Text(L.string("menu.empty.installHook"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Theme.accent)
                 }
                 .buttonStyle(.plain)
-                .padding(.top, 2)
+                .padding(.top, Theme.Spacing.md)
             }
+
+            // A footnote to the empty state, not a section of its own: no
+            // divider above it, and dimmer than the sentence it sits under.
+            // It answers "will it see my editor?" without a trip to Settings.
+            Text(L.string("menu.empty.editors"))
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textFaint)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Theme.Spacing.lg)
         }
-        .padding(.horizontal, 7)
-        .padding(.vertical, Theme.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.top, Theme.Spacing.xl)
+        .padding(.bottom, Theme.Spacing.lg)
+        .frame(maxWidth: .infinity)
     }
 
     /// Settings… and Quit always sit at the very bottom, regardless of
