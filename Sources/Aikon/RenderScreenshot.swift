@@ -100,10 +100,11 @@ struct ScreenshotComposition: View {
     let model: PanelModel
 
     /// Logical points; the PNG is `scale` times this wide (4x by default), and
-    /// the height is whatever the content needs. Wide enough that the menu bar
-    /// strip reads as wider than the 300pt menu hanging off it, and no wider —
-    /// at 620 the README picture was almost half empty on the left.
-    static let canvasWidth: CGFloat = 460
+    /// the height is whatever the content needs. The menu bar strip spans the
+    /// full width while the menu below is 300pt and right-aligned — the room to
+    /// the left of it is deliberate, it's what makes the strip read as a menu
+    /// bar rather than as a title bar.
+    static let canvasWidth: CGFloat = 620
 
     private let margin: CGFloat = 32
     private let stripHeight: CGFloat = 30
