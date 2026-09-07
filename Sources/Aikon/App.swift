@@ -35,7 +35,13 @@ struct AikonApp: App {
         MenuBarExtra {
             MenuView(model: model)
         } label: {
-            StatusItemLabel(counts: model.counts)
+            // A drawn image, not the view itself: MenuBarExtra reduces a
+            // composed label and strips its colour. See `StatusItemLabel`.
+            if let image = model.statusImage {
+                Image(nsImage: image)
+            } else {
+                Text("\(model.counts.waiting)  \(model.counts.done)  \(model.counts.busy)")
+            }
         }
         .menuBarExtraStyle(.window)
 
