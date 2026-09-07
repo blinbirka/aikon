@@ -50,6 +50,12 @@ enum RenderScreenshot {
     /// composition, the share of hard edges in the menu rose from 0.36% to
     /// 2.74% when this switched to `ImageRenderer`, which takes the scale as an
     /// explicit input instead of inferring it.
+    ///
+    /// The trade `ImageRenderer` makes: it draws only what SwiftUI itself
+    /// draws. An AppKit-backed view — a representable, a real material — comes
+    /// out as a placeholder rather than an error. Everything `MenuView` uses
+    /// today is text, shapes and images, so this is a constraint on what the
+    /// menu may grow into, not a problem it has.
     @MainActor
     private static func render(_ view: some View, width: CGFloat, scale: CGFloat = 4) -> Data? {
         // `Theme`'s colors are `NSColor(name:dynamicProvider:)`, resolved against
