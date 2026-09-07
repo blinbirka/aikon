@@ -15,7 +15,8 @@ front.
 
 1. Download the zip from [Releases](../../releases), unzip it, drag **Aikon**
    into Applications.
-2. The app is signed, but not notarized by Apple, so macOS asks about it once.
+2. Aikon signs itself ad-hoc: there is no Apple certificate behind the
+   signature, and Apple has not notarized it. macOS asks about it once.
    One line in Terminal, on any version of macOS:
 
    ```sh
@@ -46,7 +47,9 @@ goes out — no analytics, no project names, no session text.
 
 ## Requirements
 
-macOS 14 or newer, on Apple Silicon or Intel. Claude Code. An editor from the
+macOS 14 or newer, on Apple Silicon or Intel, for the app from Releases.
+Building it yourself additionally needs Xcode 16 or newer, which macOS 14 does
+not ship with. Claude Code. An editor from the
 VS Code family: VS Code, Cursor, Windsurf or VSCodium. Every one of them ships a
 description of itself that Aikon reads, so it picks up whichever you have
 installed.
@@ -69,7 +72,8 @@ bash scripts/install.sh
 ```
 
 That builds a universal app, signs it and puts it in `/Applications`. Needs
-Swift 6, which comes with Xcode 16 or newer. No dependencies, about 2 MB built.
+Swift 6, which comes with Xcode 16 or newer. No dependencies. The built app is
+about 3.5 MB, the release zip about 1 MB.
 
 If you hand this repository to a coding agent, `CLAUDE.md` at the root has the
 commands and the house rules.
