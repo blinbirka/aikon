@@ -25,7 +25,12 @@ extension SessionStatus {
     /// they resolve correctly in both appearances on their own.
     var symbolColor: Color {
         switch self {
-        case .needsAnswer:     .red
+        // Blue, not red: a question is not a failure. Red was reading as
+        // "something broke" when all the session wants is an answer — the
+        // yellow triangle next to it already carries the one urgent state.
+        // The same blue as the unread dot, rather than a second one: they
+        // never share a row, and the shapes tell them apart.
+        case .needsAnswer:     Color.themed(light: 0x1c6cf0, dark: 0x4f9bff)
         case .needsPermission: .yellow
         case .finished:        .green
         case .working:         Theme.textFaint
