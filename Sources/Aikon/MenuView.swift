@@ -80,7 +80,7 @@ struct MenuView: View {
 
             if model.needsHookSetup {
                 Button {
-                    NSApp.keyWindow?.close()
+                    NotificationCenter.default.post(name: .aikonClosePanel, object: nil)
                     NotificationCenter.default.post(name: .aikonOpenSettings, object: nil)
                 } label: {
                     Text(L.string("menu.empty.installHook"))
@@ -113,7 +113,7 @@ struct MenuView: View {
         VStack(alignment: .leading, spacing: 0) {
             if let version = model.availableUpdate {
                 Button {
-                    NSApp.keyWindow?.close()
+                    NotificationCenter.default.post(name: .aikonClosePanel, object: nil)
                     NSWorkspace.shared.open(UpdateChecker.releasePageURL)
                 } label: {
                     Text(L.format("menu.updateAvailable", version))
@@ -125,30 +125,7 @@ struct MenuView: View {
             }
 
             Button {
-                // `MenuBarExtra(.window)` has no SwiftUI-native way to dismiss
-                // its own popover on macOS 14. Three options were checked and
-                // rejected before this one:
-                // - `@Environment(\.dismiss)` only closes a modal presentation
-                //   (sheet/popover/fullScreenCover) or a `Window` scene reached
-                //   through `openWindow`. The menu bar popover isn't presented
-                //   through either path, so it's a silent no-op here.
-                // - `@Environment(\.dismissWindow)` targets a `Window` scene by
-                //   its `id`. `MenuBarExtra` doesn't expose an id to target —
-                //   there's nothing to pass it.
-                // - `MenuBarExtra(isInserted:)` toggles the status *item*
-                //   itself (the icon in the menu bar), not the popover. Using
-                //   it here would make the icon blink away and reappear,
-                //   which is worse than the popover staying open.
-                // What actually works: the instant this action runs, the
-                // click that fired it landed on this popover, so it's
-                // guaranteed to be `NSApp.keyWindow` right now. Closing that
-                // is plain public AppKit — no guessing at SwiftUI's internal
-                // window class name, and a harmless no-op on the (never
-                // expected) case there's no key window. Closing it before
-                // posting the notification means the popover is gone before
-                // Settings opens, not after, so there's no visible flash of
-                // both windows at once.
-                NSApp.keyWindow?.close()
+                NotificationCenter.default.post(name: .aikonClosePanel, object: nil)
                 NotificationCenter.default.post(name: .aikonOpenSettings, object: nil)
             } label: {
                 Text(L.string("menu.settings"))

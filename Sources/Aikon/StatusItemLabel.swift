@@ -6,33 +6,102 @@ struct Counts: Equatable {
     var busy = 0
 }
 
-/// The menu bar label. A single `Text`, and that is load-bearing twice over.
+/// The three pairs in the menu bar.
 ///
-/// `MenuBarExtra` reduces a composed label to its first element, so an HStack
-/// of images and numbers shows only the first glyph. That much was known. The
-/// part that cost a day: an image label — even one drawn by hand with the
-/// whole row in it — is the wrong shape for this problem. Marked as a template
-/// it loses the colours; marked as anything else it stops being tinted, and
-/// the menu bar is translucent, so the background is the desktop picture and
-/// no fixed colour is safe on it.
+/// This is a live view, hosted inside the status item by `StatusBarController`
+/// — not a `MenuBarExtra` label, and not a picture. Both of those were tried
+/// and both fail here, in ways worth writing down so they aren't tried again:
 ///
-/// Text sidesteps both. The numbers are plain text and the system tints them
-/// to the bar it actually drew, whatever is behind it. The emoji carry their
-/// own colours and are not tinted at all. That is why this worked before it
-/// was ever thought about, and why it is back.
+/// - A `MenuBarExtra` label takes text, an image, or text with an image. A
+///   composed label is reduced to its first element, and symbols concatenated
+///   into a `Text` are dropped entirely — that version showed the numbers and
+///   none of the glyphs.
+/// - A hand-drawn image of the whole row can hold the glyphs, but not the
+///   colours *and* the legibility. Marked as a template it is tinted correctly
+///   and loses every colour; marked as anything else it keeps the colours and
+///   is never tinted — and the menu bar is translucent, so what sits behind
+///   the numbers is the desktop picture. There is no fixed colour that works
+///   on all of them, and macOS does not report which one it drew.
 ///
-/// The one real defect was 🏁: a fine checkerboard that turned to grey mush at
-/// menu-bar size and rippled in the README picture. ✅ says the same thing with
-/// one solid shape. Inside the menu, where the app owns the background, the
-/// statuses are drawn as coloured SF Symbols instead — see `StatusSymbol`.
+/// A live view escapes that: it sits inside the status item's own window,
+/// which carries the vibrant appearance the system uses for the real menu
+/// bar, so `.primary` follows the bar the way system text does, while the
+/// symbols keep the colours given to them.
 struct StatusItemLabel: View {
     let counts: Counts
+    /// Given, not inherited. `.primary` here is drawn with the menu bar's
+    /// vibrancy: correct on screen, but it does not survive an offscreen copy,
+    /// so nothing about this label could be checked without asking a person to
+    /// look at it. `StatusBarController` reads the real appearance off the
+    /// status item's button — which, unlike the application's, follows the bar
+    /// the system actually drew — and passes the colour in.
+    var numberColour: Color = .primary
+
+    /// Spacing inside a pair, and between pairs — her pick out of three
+    /// mock-ups, the tightest of them, because the menu bar is shared space.
+    private let insidePair: CGFloat = 2
+    private let betweenPairs: CGFloat = 10
+
+    /// The dot is drawn small on purpose, and a small glyph in a box sized for
+    /// the big ones carries empty space on both sides — which made the third
+    /// pair look further away than the second. Giving the dot a box its own
+    /// size fixes that on its own. Trimming the gap *as well* was one
+    /// correction too many: the two together left the second number jammed
+    /// against the dot, close enough to read as a cut-off digit.
+    private let dotOpticalTrim: CGFloat = 0
 
     var body: some View {
-        // Spacing is what the characters give: a thin space holds a count to
-        // its own glyph, two ordinary ones separate the pairs. Her pick out of
-        // three mock-ups was the tightest of them.
-        Text("⚠️\u{2009}\(counts.waiting)  ✅\u{2009}\(counts.done)  ●\u{2009}\(counts.busy)")
-            .monospacedDigit()
+        HStack(spacing: 0) {
+            pair(.needsPermission, counts.waiting)
+            pair(.finished, counts.done)
+                .padding(.leading, betweenPairs)
+            pair(.working, counts.busy)
+                .padding(.leading, betweenPairs - dotOpticalTrim)
+        }
+        .font(.system(size: 13))
+        .monospacedDigit()
+    }
+
+    private func pair(_ status: SessionStatus, _ count: Int) -> some View {
+        HStack(spacing: insidePair) {
+            glyph(status)
+                .frame(width: status == .working ? 9 : 14)
+            Text("\(count)")
+                .foregroundStyle(numberColour)
+        }
+    }
+
+    /// Palette rendering for the two symbols that carry an inner mark: in the
+    /// `.fill` variants the tick and the exclamation are holes punched through
+    /// the shape, so the wallpaper showed through them. Filling them black is
+    /// what the emoji did. Both colours go in one call — a second
+    /// `foregroundStyle` replaces this one rather than adding to it, which is
+    /// how the glyphs once came out solid black and invisible.
+    ///
+    /// The working dot has a single layer, and palette's first colour would
+    /// paint the whole disc, so it stays monochrome.
+    @ViewBuilder
+    private func glyph(_ status: SessionStatus) -> some View {
+        if status == .working {
+            Image(systemName: status.symbolName)
+                .font(.system(size: 8))
+                .foregroundStyle(status.symbolColor)
+        } else {
+            Image(systemName: status.symbolName)
+                .font(.system(size: 12))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.black, status.symbolColor)
+        }
+    }
+}
+
+/// The same label, following a model. `StatusBarController` hosts this one so
+/// the menu bar redraws itself when the counts change.
+struct StatusItemLabelHost: View {
+    @ObservedObject var model: PanelModel
+    var numberColour: Color
+
+    var body: some View {
+        StatusItemLabel(counts: model.counts, numberColour: numberColour)
     }
 }
