@@ -39,53 +39,43 @@ enum RenderScreenshot {
 
     /// Off-screen render of `view` at `width` logical points, as tall as its
     /// content turns out to be, at 4x pixel density: the shot is a hero image
-    /// people will zoom into, and 2x text looked soft.
-    /// The bitmap is built by hand at 2x pixel dimensions — rather than
-    /// asking `bitmapImageRepForCachingDisplay(in:)` to pick a scale — so the
-    /// output is always retina, whether or not this process has an attached
-    /// screen at all (it doesn't, in the CI/script use case this exists for).
+    /// people zoom into.
+    ///
+    /// This used to lay the view out in an `NSHostingView` and call
+    /// `cacheDisplay(in:to:)` into a hand-built `NSBitmapImageRep` sized at
+    /// `scale` times the logical size, on the assumption that AppKit reads that
+    /// ratio and rasterizes at 4x. It does not: an off-screen view has no
+    /// window and so a backing scale factor of 1, and the text came out soft
+    /// while the image was nominally 2480px wide. Measured on the same
+    /// composition, the share of hard edges in the menu rose from 0.36% to
+    /// 2.74% when this switched to `ImageRenderer`, which takes the scale as an
+    /// explicit input instead of inferring it.
     @MainActor
     private static func render(_ view: some View, width: CGFloat, scale: CGFloat = 4) -> Data? {
-        let hostingView = NSHostingView(rootView: view.frame(width: width))
-        // Forces every appearance-dependent color in the app (see
-        // `Color.themed` in `MenuView.swift`, and `Theme.swift`) to resolve
-        // the same way regardless of the machine's actual system setting —
-        // the screenshot must look identical everywhere it's generated.
-        hostingView.appearance = NSAppearance(named: .darkAqua)
-        // Nothing behind the menu: the PNG keeps an alpha channel so it sits on
-        // whatever colour the page around it happens to be.
-        hostingView.wantsLayer = true
-        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
-
-        // Height comes from the laid-out content rather than a fixed canvas.
-        // The fixed canvas was 900x1100 with the menu floating in the middle of
-        // it, so most of the image was empty space.
-        var size = hostingView.fittingSize
-        size.width = width
-        guard size.height > 0 else { return nil }
-        hostingView.setFrameSize(size)
-        hostingView.layoutSubtreeIfNeeded()
-
-        guard let rep = NSBitmapImageRep(
-            bitmapDataPlanes: nil,
-            pixelsWide: Int(size.width * scale),
-            pixelsHigh: Int(size.height * scale),
-            bitsPerSample: 8,
-            samplesPerPixel: 4,
-            hasAlpha: true,
-            isPlanar: false,
-            colorSpaceName: .deviceRGB,
-            bytesPerRow: 0,
-            bitsPerPixel: 0
-        ) else { return nil }
-        // The pixel count above is `scale` times `size`; telling the rep its logical
-        // size is still `size` is what makes those extra pixels "retina"
-        // rather than just a bigger image — `cacheDisplay` reads this ratio
-        // to pick its rendering scale.
-        rep.size = size
-
-        hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
-        return rep.representation(using: .png, properties: [:])
+        // `Theme`'s colors are `NSColor(name:dynamicProvider:)`, resolved against
+        // whatever drawing appearance is current — and `ImageRenderer` does not
+        // inherit one from a view the way `NSHostingView.appearance` did. Without
+        // both of these the menu renders its light-mode text on its dark-mode
+        // background: near-invisible grey on grey.
+        guard let dark = NSAppearance(named: .darkAqua) else { return nil }
+        var png: Data?
+        dark.performAsCurrentDrawingAppearance {
+            let renderer = ImageRenderer(
+                content: view
+                    .frame(width: width)
+                    .environment(\.colorScheme, .dark)
+            )
+            renderer.scale = scale
+            // Nothing behind the menu: the PNG keeps an alpha channel so it sits
+            // on whatever colour the page around it happens to be. The height is
+            // whatever the laid-out content needs — `ImageRenderer` sizes to the
+            // content, so there is no fixed canvas to leave empty space in.
+            renderer.isOpaque = false
+            if let cgImage = renderer.cgImage {
+                png = NSBitmapImageRep(cgImage: cgImage).representation(using: .png, properties: [:])
+            }
+        }
+        return png
     }
 }
 
