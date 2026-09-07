@@ -27,14 +27,23 @@ struct StatusItemLabel: View {
     private let betweenPairs: CGFloat = 10
 
     var body: some View {
-        HStack(spacing: betweenPairs) {
+        HStack(spacing: 0) {
             pair(.needsPermission, counts.waiting)
             pair(.finished, counts.done)
+                .padding(.leading, betweenPairs)
             pair(.working, counts.busy)
+                .padding(.leading, betweenPairs - dotOpticalTrim)
         }
         .font(.system(size: 13))
         .monospacedDigit()
     }
+
+    /// The dot is drawn small on purpose, and a small glyph in a box the size
+    /// of the big ones carries empty space on both sides. Measured spacing
+    /// then lies: the third pair looks further away than the second and stops
+    /// belonging to the row. Its box is its own size, and the gap in front of
+    /// it comes in by the difference.
+    private let dotOpticalTrim: CGFloat = 3
 
     private func pair(_ status: SessionStatus, _ count: Int) -> some View {
         HStack(spacing: insidePair) {
@@ -42,7 +51,7 @@ struct StatusItemLabel: View {
                 // The working dot is a solid disc where the other two are
                 // detailed shapes; at a shared size it reads twice as heavy.
                 .font(.system(size: status == .working ? 8 : 12))
-                .frame(width: 14)
+                .frame(width: status == .working ? 9 : 14)
             Text("\(count)")
                 .foregroundStyle(status.symbolColor)
         }
