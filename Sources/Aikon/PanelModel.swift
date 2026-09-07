@@ -36,11 +36,6 @@ final class PanelModel: ObservableObject {
     /// point at the one step that's actually missing.
     @Published private(set) var needsHookSetup = false
     @Published private(set) var counts = Counts()
-    /// The menu bar label, already drawn — see `StatusItemLabel.image`.
-    @Published private(set) var statusImage: NSImage?
-    /// What `statusImage` was drawn for. Redrawing every two seconds would be
-    /// wasted work: the counts change rarely, and the appearance almost never.
-    private var statusImageKey = ""
     /// The version to offer in the menu and About, or `nil` when there's
     /// nothing newer than what's running. Recomputed on every refresh from
     /// whatever `UpdateChecker` last found — see `checkForUpdate()`.
@@ -245,7 +240,6 @@ final class PanelModel: ObservableObject {
             now.timeIntervalSince($0.writtenAt) < 3600 ? $0 : nil
         }
         counts = Counts(waiting: waiting.count, done: finished.count, busy: working.count)
-        updateStatusImage()
 
         // Someone who just installed Aikon and has never run Claude Code would
         // otherwise open a menu holding nothing but Settings… and Quit, with no
@@ -269,18 +263,6 @@ final class PanelModel: ObservableObject {
         }
 
         Task { await refreshBranches(for: sessions.map(\.path)) }
-    }
-
-    /// Redraws the menu bar label, but only when what it shows has actually
-    /// changed. The appearance is part of that: the label is a non-template
-    /// image, so nothing recolours its numbers when the menu bar flips between
-    /// light and dark — this has to notice and draw them again.
-    private func updateStatusImage() {
-        let appearance = NSApp?.effectiveAppearance
-        let key = "\(counts.waiting)/\(counts.done)/\(counts.busy)/\(appearance?.name.rawValue ?? "-")"
-        guard key != statusImageKey else { return }
-        statusImageKey = key
-        statusImage = StatusItemLabel.image(counts: counts, appearance: appearance)
     }
 
     /// What to show when a folder has several sessions — a service launch,
