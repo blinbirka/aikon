@@ -34,32 +34,50 @@ struct StatusItemLabel: View {
         }
         .font(.system(size: 13))
         .monospacedDigit()
-        // Not `.primary`: this view is rasterized, so the colour has to be
-        // resolved against the menu bar's appearance at render time rather
-        // than left for SwiftUI to adapt later — see `image(counts:)`.
-        .foregroundStyle(Color(nsColor: .labelColor))
     }
 
     private func pair(_ status: SessionStatus, _ count: Int) -> some View {
         HStack(spacing: insidePair) {
-            Image(systemName: status.symbolName)
+            glyph(status)
                 // The working dot is a solid disc where the other two are
                 // detailed shapes; at a shared size it reads twice as heavy.
                 .font(.system(size: status == .working ? 8 : 12))
-                .foregroundStyle(status.symbolColor)
                 .frame(width: 14)
             Text("\(count)")
+                .foregroundStyle(status.symbolColor)
+        }
+    }
+
+    /// Palette rendering for the two symbols that have an inner mark: in the
+    /// `.fill` variants the tick and the exclamation are holes punched through
+    /// the shape, so the menu bar — and whatever wallpaper shows through it —
+    /// came up inside them. Filling them black is what the emoji used to do.
+    ///
+    /// The working dot has no second layer, and palette's first colour would
+    /// simply paint the whole disc black, so it stays monochrome.
+    @ViewBuilder
+    private func glyph(_ status: SessionStatus) -> some View {
+        if status == .working {
+            Image(systemName: status.symbolName)
+                .foregroundStyle(status.symbolColor)
+        } else {
+            Image(systemName: status.symbolName)
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.black, status.symbolColor)
         }
     }
 }
 
 extension StatusItemLabel {
-    /// The row as a non-template image, ready for `MenuBarExtra`'s label.
+    /// The row as an image, ready for `MenuBarExtra`'s label.
     ///
-    /// `isTemplate = false` is what keeps the colours — and the cost of that
-    /// is real: the system no longer recolours the label when the menu bar
-    /// flips between light and dark, so the caller has to redraw on an
-    /// appearance change. `PanelModel.updateStatusImage()` does.
+    /// `isTemplate = false` keeps the colours, and the cost is that nothing
+    /// recolours the label for the bar underneath it. macOS darkens the menu
+    /// bar over a dark desktop picture even while the system appearance is
+    /// light, and tells no one: `NSApp.effectiveAppearance` still says light.
+    /// So no neutral colour is safe here, and the label carries none — every
+    /// glyph and every number is drawn in its status's own colour, which
+    /// stands on a bar of either shade.
     @MainActor
     static func image(counts: Counts, appearance: NSAppearance?) -> NSImage? {
         var image: NSImage?
