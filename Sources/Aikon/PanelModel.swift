@@ -30,6 +30,11 @@ final class PanelModel: ObservableObject {
     @Published private(set) var idleProjects: [Project] = []
     @Published private(set) var pinnedProjects: [Project] = []
     @Published private(set) var limits: Limits?
+    /// Nothing at all to show — no sessions, no folders, no usage numbers.
+    @Published private(set) var isEmpty = false
+    /// Empty *and* the status hook was never installed, so the empty state can
+    /// point at the one step that's actually missing.
+    @Published private(set) var needsHookSetup = false
     @Published private(set) var counts = Counts()
     /// The version to offer in the menu and About, or `nil` when there's
     /// nothing newer than what's running. Recomputed on every refresh from
@@ -235,6 +240,19 @@ final class PanelModel: ObservableObject {
             now.timeIntervalSince($0.writtenAt) < 3600 ? $0 : nil
         }
         counts = Counts(waiting: waiting.count, done: finished.count, busy: working.count)
+
+        // Someone who just installed Aikon and has never run Claude Code would
+        // otherwise open a menu holding nothing but Settings… and Quit, with no
+        // hint about what's missing. `MenuView` shows an explanation instead —
+        // and offers the hook step, but only to someone who hasn't taken it.
+        // The settings file is read only in this case, not on every cycle.
+        isEmpty = waiting.isEmpty && finished.isEmpty && working.isEmpty
+            && idleProjects.isEmpty && pinnedProjects.isEmpty && limits == nil
+        if isEmpty, case .notInstalled = HookInstaller.state() {
+            needsHookSetup = true
+        } else {
+            needsHookSetup = false
+        }
 
         availableUpdate = UpdateChecker.availableUpdate(latestKnown: config.latestKnownVersion,
                                                          current: AppVersion.current)

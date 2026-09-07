@@ -28,6 +28,9 @@
 "menu.updateAvailable" = "Version %@ available";
 "menu.settings" = "Settings…";
 "menu.quit" = "Quit";
+"menu.empty.title" = "No sessions yet";
+"menu.empty.body" = "Start Claude Code in a project and it shows up here.";
+"menu.empty.installHook" = "Set up the status hook…";
 
 /* Settings window: sidebar */
 "settings.brand.name" = "Aikon";

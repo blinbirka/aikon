@@ -49,8 +49,39 @@ struct MenuView: View {
         // project with a live session is already in a group above.
         if !model.pinnedProjects.isEmpty { add(pinned(model.pinnedProjects)) }
         if let limits = model.limits   { add(LimitsBlock(limits: limits)) }
+        if out.isEmpty                 { add(emptyState()) }
         add(footer())
         return out
+    }
+
+    /// The menu with nothing in it at all. Without this block a fresh install
+    /// opens on Settings… and Quit alone, which reads as broken rather than as
+    /// empty — and says nothing about the one setup step that may be missing.
+    private func emptyState() -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Text(L.string("menu.empty.title"))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+            Text(L.string("menu.empty.body"))
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textDim)
+                .fixedSize(horizontal: false, vertical: true)
+            if model.needsHookSetup {
+                Button {
+                    NSApp.keyWindow?.close()
+                    NotificationCenter.default.post(name: .aikonOpenSettings, object: nil)
+                } label: {
+                    Text(L.string("menu.empty.installHook"))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.accent)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
+            }
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, Theme.Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Settings… and Quit always sit at the very bottom, regardless of

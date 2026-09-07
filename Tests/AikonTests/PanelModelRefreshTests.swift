@@ -27,9 +27,15 @@ private func withSandbox(_ body: (Sandbox) throws -> Void) rethrows {
     let savedStateDir = StateReader.dir
     let savedLimitsFile = LimitsReader.file
     let savedIsRunning = OpenWindows.isVSCodeRunning
+    let savedSettingsURL = HookInstaller.settingsURL
     TranscriptIndex.root = root
     StateReader.dir = stateDir
     LimitsReader.file = box.appendingPathComponent("limits-not-written")
+    // `refresh()` asks whether the status hook is installed, to decide what the
+    // empty menu should offer. Pointed at the sandbox so it never reads — or
+    // reports on — the real `~/.claude/settings.json`. Missing file here means
+    // "not installed", which is what a fresh machine looks like.
+    HookInstaller.settingsURL = box.appendingPathComponent("settings.json")
     OpenWindows.isVSCodeRunning = { false }
     OpenWindows.forgetCache()
     ProjectPaths.invalidateCache()
@@ -48,6 +54,7 @@ private func withSandbox(_ body: (Sandbox) throws -> Void) rethrows {
         StateReader.dir = savedStateDir
         LimitsReader.file = savedLimitsFile
         OpenWindows.isVSCodeRunning = savedIsRunning
+        HookInstaller.settingsURL = savedSettingsURL
         OpenWindows.forgetCache()
         ProjectPaths.invalidateCache()
         try? FileManager.default.removeItem(at: box)
@@ -168,5 +175,62 @@ private func realFolder(in root: URL, name: String) throws -> String {
 
         model.refresh(now: now.addingTimeInterval(2 * 3600))
         #expect(model.limits == nil)
+    }
+}
+
+// A machine that has just installed Aikon and never run Claude Code produced a
+// menu holding nothing but Settings… and Quit — nothing said why, and nothing
+// pointed at the one setup step that was still missing. `isEmpty` and
+// `needsHookSetup` are what MenuView shows an explanation from.
+
+@Test @MainActor
+func aFreshMachineWithNothingRunningIsReportedAsEmpty() throws {
+    try withSandbox { sandbox in
+        let model = throwawayModel(sandbox)
+        model.refresh()
+
+        #expect(model.isEmpty)
+        #expect(model.waiting.isEmpty && model.finished.isEmpty && model.working.isEmpty)
+    }
+}
+
+@Test @MainActor
+func anEmptyMenuOffersTheHookStepWhileTheHookIsMissing() throws {
+    try withSandbox { sandbox in
+        let model = throwawayModel(sandbox)
+        model.refresh()
+
+        #expect(model.needsHookSetup)
+    }
+}
+
+@Test @MainActor
+func theHookStepIsNotOfferedOnceTheHookIsInstalled() throws {
+    try withSandbox { sandbox in
+        let box = HookInstaller.settingsURL.deletingLastPathComponent()
+        try HookInstaller.install(settingsURL: HookInstaller.settingsURL,
+                                  hookDestURL: box.appendingPathComponent("aikon-hook.sh"))
+
+        let model = throwawayModel(sandbox)
+        model.refresh()
+
+        #expect(model.isEmpty)
+        #expect(!model.needsHookSetup)
+    }
+}
+
+@Test @MainActor
+func oneLiveSessionMeansTheMenuIsNotEmpty() throws {
+    try withSandbox { sandbox in
+        let now = Date()
+        let path = try realFolder(in: sandbox.root, name: "a-project")
+        try writeTranscript(in: try sessionFolder(in: sandbox.root), cwd: path,
+                            mtime: now, lastLine: workingLine)
+
+        let model = throwawayModel(sandbox)
+        model.refresh(now: now)
+
+        #expect(!model.isEmpty)
+        #expect(!model.needsHookSetup)
     }
 }

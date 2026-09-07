@@ -28,6 +28,9 @@
 "menu.updateAvailable" = "Доступна версия %@";
 "menu.settings" = "Настройки…";
 "menu.quit" = "Завершить";
+"menu.empty.title" = "Пока ничего нет";
+"menu.empty.body" = "Запусти Claude Code в любом проекте, и он появится здесь.";
+"menu.empty.installHook" = "Настроить хук статусов…";
 
 /* Окно настроек: сайдбар */
 "settings.brand.name" = "Aikon";
