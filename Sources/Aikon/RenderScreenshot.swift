@@ -7,6 +7,13 @@ import AppKit
 /// `Aikon --render-screenshot <path>` — before SwiftUI's own `App.main()`
 /// runs, so nothing ever puts an icon in the menu bar or opens a window.
 enum RenderScreenshot {
+    /// How wide the PNG comes out, in pixels. GitHub lays the README out in a
+    /// column about 830 points across and scales the picture down to fit it, so
+    /// at 2480 the browser was resampling by a ragged 1.49 and chewing the small
+    /// text. Twice the column width lands pixel-for-pixel on a retina screen.
+    /// The trade is that zooming in is softer than it was at 4x.
+    static let outputWidth: CGFloat = 1660
+
     /// The path after `--render-screenshot`, or `nil` when the flag isn't
     /// present — the normal, everyday way to launch the app.
     static func outputPath(in arguments: [String] = CommandLine.arguments) -> String? {
@@ -24,7 +31,9 @@ enum RenderScreenshot {
         let model = PanelModel.renderPreview()
         let composition = ScreenshotComposition(model: model)
 
-        guard let png = render(composition, width: ScreenshotComposition.canvasWidth) else {
+        let scale = Self.outputWidth / ScreenshotComposition.canvasWidth
+        guard let png = render(composition, width: ScreenshotComposition.canvasWidth,
+                               scale: scale) else {
             FileHandle.standardError.write(Data("render-screenshot: failed to draw the menu\n".utf8))
             exit(1)
         }
@@ -38,8 +47,8 @@ enum RenderScreenshot {
     }
 
     /// Off-screen render of `view` at `width` logical points, as tall as its
-    /// content turns out to be, at 4x pixel density: the shot is a hero image
-    /// people zoom into.
+    /// content turns out to be, at whatever density `scale` asks for — see
+    /// `outputWidth` for how that number is chosen.
     ///
     /// This used to lay the view out in an `NSHostingView` and call
     /// `cacheDisplay(in:to:)` into a hand-built `NSBitmapImageRep` sized at
@@ -57,7 +66,7 @@ enum RenderScreenshot {
     /// today is text, shapes and images, so this is a constraint on what the
     /// menu may grow into, not a problem it has.
     @MainActor
-    private static func render(_ view: some View, width: CGFloat, scale: CGFloat = 4) -> Data? {
+    private static func render(_ view: some View, width: CGFloat, scale: CGFloat) -> Data? {
         // `Theme`'s colors are `NSColor(name:dynamicProvider:)`, resolved against
         // whatever drawing appearance is current — and `ImageRenderer` does not
         // inherit one from a view the way `NSHostingView.appearance` did. Without
