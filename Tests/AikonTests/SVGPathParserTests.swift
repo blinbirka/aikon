@@ -80,9 +80,12 @@ import SwiftUI
     }
 
     @Test func unknownCommandStopsWithoutCrashing() {
-        // Should not hang or trap — just stop at the point it can't parse.
-        let path = SVGPathParser.path(from: "M0 0L5 5Q")
-        #expect(path.boundingRect.width >= 0)
+        // Should not hang or trap — just stop at the point it can't parse,
+        // keeping whatever was already drawn and discarding everything after
+        // the unknown command, even further valid commands that follow it.
+        let validPrefixOnly = SVGPathParser.path(from: "M0 0L5 5")
+        let withUnknownCommandAndMore = SVGPathParser.path(from: "M0 0L5 5XL100 100Z")
+        #expect(withUnknownCommandAndMore.boundingRect == validPrefixOnly.boundingRect)
     }
 
     @Test func brandGlyphsParseIntoNonEmptyPathsWithinViewBox() {

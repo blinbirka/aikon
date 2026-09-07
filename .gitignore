@@ -7,3 +7,6 @@ xcuserdata/
 Package.resolved
 *.zip
 tmp/
+.env
+.claude/
+.vscode/

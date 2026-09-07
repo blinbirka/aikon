@@ -49,8 +49,62 @@ struct MenuView: View {
         // project with a live session is already in a group above.
         if !model.pinnedProjects.isEmpty { add(pinned(model.pinnedProjects)) }
         if let limits = model.limits   { add(LimitsBlock(limits: limits)) }
+        if out.isEmpty                 { add(emptyState()) }
         add(footer())
         return out
+    }
+
+    /// The menu with nothing in it at all. Without this block a fresh install
+    /// opens on Settings… and Quit alone, which reads as broken rather than as
+    /// empty — and says nothing about the one setup step that may be missing.
+    ///
+    /// The mark is Aikon's own, not Claude's: pointing at compatibility with
+    /// someone else's logo is a trademark question this app doesn't need to
+    /// open, and the body text already names Claude Code in words.
+    private func emptyState() -> some View {
+        VStack(spacing: 0) {
+            BrandMark(size: 40, cornerRadius: Theme.Radius.lg, markSize: 17)
+
+            Text(L.string("menu.empty.title"))
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+                .padding(.top, Theme.Spacing.md)
+
+            Text(L.string("menu.empty.body"))
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.textDim)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Theme.Spacing.xs)
+
+            if model.needsHookSetup {
+                Button {
+                    NotificationCenter.default.post(name: .aikonClosePanel, object: nil)
+                    NotificationCenter.default.post(name: .aikonOpenSettings, object: nil)
+                } label: {
+                    Text(L.string("menu.empty.installHook"))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Theme.accent)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, Theme.Spacing.md)
+            }
+
+            // A footnote to the empty state, not a section of its own: no
+            // divider above it, and dimmer than the sentence it sits under.
+            // It answers "will it see my editor?" without a trip to Settings.
+            Text(L.string("menu.empty.editors"))
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textFaint)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Theme.Spacing.lg)
+        }
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.top, Theme.Spacing.xl)
+        .padding(.bottom, Theme.Spacing.lg)
+        .frame(maxWidth: .infinity)
     }
 
     /// Settings… and Quit always sit at the very bottom, regardless of
@@ -59,7 +113,7 @@ struct MenuView: View {
         VStack(alignment: .leading, spacing: 0) {
             if let version = model.availableUpdate {
                 Button {
-                    NSApp.keyWindow?.close()
+                    NotificationCenter.default.post(name: .aikonClosePanel, object: nil)
                     NSWorkspace.shared.open(UpdateChecker.releasePageURL)
                 } label: {
                     Text(L.format("menu.updateAvailable", version))
@@ -71,30 +125,7 @@ struct MenuView: View {
             }
 
             Button {
-                // `MenuBarExtra(.window)` has no SwiftUI-native way to dismiss
-                // its own popover on macOS 14. Three options were checked and
-                // rejected before this one:
-                // - `@Environment(\.dismiss)` only closes a modal presentation
-                //   (sheet/popover/fullScreenCover) or a `Window` scene reached
-                //   through `openWindow`. The menu bar popover isn't presented
-                //   through either path, so it's a silent no-op here.
-                // - `@Environment(\.dismissWindow)` targets a `Window` scene by
-                //   its `id`. `MenuBarExtra` doesn't expose an id to target —
-                //   there's nothing to pass it.
-                // - `MenuBarExtra(isInserted:)` toggles the status *item*
-                //   itself (the icon in the menu bar), not the popover. Using
-                //   it here would make the icon blink away and reappear,
-                //   which is worse than the popover staying open.
-                // What actually works: the instant this action runs, the
-                // click that fired it landed on this popover, so it's
-                // guaranteed to be `NSApp.keyWindow` right now. Closing that
-                // is plain public AppKit — no guessing at SwiftUI's internal
-                // window class name, and a harmless no-op on the (never
-                // expected) case there's no key window. Closing it before
-                // posting the notification means the popover is gone before
-                // Settings opens, not after, so there's no visible flash of
-                // both windows at once.
-                NSApp.keyWindow?.close()
+                NotificationCenter.default.post(name: .aikonClosePanel, object: nil)
                 NotificationCenter.default.post(name: .aikonOpenSettings, object: nil)
             } label: {
                 Text(L.string("menu.settings"))
@@ -203,9 +234,10 @@ struct SessionRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 7) {
-            Text(session.status.glyph)
-                .font(.system(size: session.status == .working ? 9 : 12))
-                .opacity(session.status == .working ? 0.45 : 1)
+            Image(systemName: session.status.symbolName)
+                .font(.system(size: session.status == .working ? 7 : 13))
+                .foregroundStyle(session.status.symbolColor)
+                .opacity(session.status == .working ? 0.75 : 1)
                 .frame(width: 20)
 
             ProjectGlyph(project: session.project)

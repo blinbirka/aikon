@@ -29,8 +29,12 @@ struct BrandMark: View {
             .fill(Theme.accent)
             .frame(width: size, height: size)
             .overlay(
+                // White, not `Theme.textOnAccent`: that token goes dark in dark
+                // mode, and the mark then read as a hole punched in the accent
+                // square. The app icon and the menu bar strip in the README
+                // always drew it white — this brings the rest in line.
                 DiamondShape()
-                    .fill(Theme.textOnAccent)
+                    .fill(.white)
                     .frame(width: markSize, height: markSize)
             )
     }

@@ -7,6 +7,9 @@ extension Notification.Name {
     /// can hand a freshly opened Settings window keyboard focus on its own.
     /// See `SettingsWindowCoordinator` for the fix.
     static let aikonOpenSettings = Notification.Name("aikonOpenSettings")
+    /// Asks the menu to close itself — posted by rows that are about to
+    /// open a window, handled in `StatusBarController`.
+    static let aikonClosePanel = Notification.Name("aikonClosePanel")
 }
 
 /// Brings the Settings window forward reliably from an `LSUIElement` app,

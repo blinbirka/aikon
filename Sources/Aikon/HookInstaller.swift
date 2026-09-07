@@ -46,7 +46,10 @@ enum HookInstaller {
     /// hook entry in that file already does.
     static let hookPathTemplate = "$HOME/.claude/aikon/aikon-hook.sh"
 
-    static let settingsURL = FileManager.default.homeDirectoryForCurrentUser
+    /// A `var`, like `TranscriptIndex.root`, so a test can point it at a temp
+    /// file: `PanelModel.refresh` reads it to decide whether the empty menu
+    /// should offer the hook step, and no test may touch the real settings.
+    nonisolated(unsafe) static var settingsURL = FileManager.default.homeDirectoryForCurrentUser
         .appending(path: ".claude/settings.json")
 
     static let installedHookURL = FileManager.default.homeDirectoryForCurrentUser
