@@ -257,9 +257,10 @@ struct SessionRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 7) {
-            Text(session.status.glyph)
-                .font(.system(size: session.status == .working ? 9 : 12))
-                .opacity(session.status == .working ? 0.45 : 1)
+            Image(systemName: session.status.symbolName)
+                .font(.system(size: session.status == .working ? 7 : 13))
+                .foregroundStyle(session.status.symbolColor)
+                .opacity(session.status == .working ? 0.75 : 1)
                 .frame(width: 20)
 
             ProjectGlyph(project: session.project)

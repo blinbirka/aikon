@@ -6,15 +6,6 @@ enum SessionStatus: Equatable {
     case finished          // 🏁
     case working
 
-    var glyph: String {
-        switch self {
-        case .needsPermission: "⚠️"
-        case .needsAnswer:     "❓"
-        case .finished:        "🏁"
-        case .working:         "●"
-        }
-    }
-
     var words: String {
         switch self {
         case .needsPermission: L.string("status.needsPermission")
