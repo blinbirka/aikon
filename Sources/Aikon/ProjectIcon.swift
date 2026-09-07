@@ -17,7 +17,10 @@ enum ProjectIcon {
         return image
     }
 
-    private static let iconsDirectory = FileManager.default.homeDirectoryForCurrentUser
+    /// A `var` (not `let`) so tests can point it at a temp directory instead
+    /// of the real `~/.config/aikon/icons` — same injection pattern as
+    /// `TranscriptIndex.root`.
+    static var iconsDirectory = FileManager.default.homeDirectoryForCurrentUser
         .appending(path: ".config/aikon/icons")
 
     /// Saves an image dropped or pasted onto a project's icon well as a PNG
