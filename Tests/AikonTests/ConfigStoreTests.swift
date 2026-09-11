@@ -100,3 +100,65 @@ private func tempConfigURL() -> URL {
     store.removeProject(path: "/Users/example/Projects/alpha")
     #expect(store.config.projects.isEmpty)
 }
+
+@Test @MainActor func foundFoldersJoinTheListUnpinnedAndOnlyOnce() {
+    let url = tempConfigURL()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+
+    let store = ConfigStore(fileURL: url, openFolders: { [] }, sessionFolders: { [] })
+    store.upsertProject(ProjectConfig(path: "/Users/example/Projects/alpha", name: "Alpha", emoji: "🚀"))
+
+    // Alpha is already there under another spelling; beta arrives twice.
+    store.adoptFound(["/Users/example/Projects/alpha/",
+                      "/Users/example/Projects/beta",
+                      "/Users/example/Projects/beta"])
+
+    #expect(store.config.projects.map(\.name) == ["Alpha", "beta"])
+    #expect(store.config.projects.first?.emoji == "🚀")
+    #expect(store.config.projects.allSatisfy { !$0.pinned && !$0.hidden })
+
+    let reloaded = ConfigStore(fileURL: url, openFolders: { [] }, sessionFolders: { [] })
+    #expect(reloaded.config.projects.map(\.name) == ["Alpha", "beta"])
+}
+
+@Test @MainActor func findingNothingNewDoesNotWriteTheFile() throws {
+    let url = tempConfigURL()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+
+    let store = ConfigStore(fileURL: url, openFolders: { [] }, sessionFolders: { [] })
+    store.adoptFound(["/Users/example/Projects/alpha"])
+    try FileManager.default.removeItem(at: url)
+
+    // The menu refreshes every two seconds; a write each time would be waste.
+    store.adoptFound(["/Users/example/Projects/alpha"])
+    #expect(!FileManager.default.fileExists(atPath: url.path))
+}
+
+@Test @MainActor func aRemovedProjectIsForgottenAndNotFoundAgain() {
+    let url = tempConfigURL()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+
+    let store = ConfigStore(fileURL: url, openFolders: { [] }, sessionFolders: { [] })
+    store.adoptFound(["/Users/example/Projects/alpha"])
+    store.removeProject(path: "/Users/example/Projects/alpha")
+
+    store.adoptFound(["/Users/example/Projects/alpha"])
+    #expect(store.config.projects.isEmpty)
+
+    let reloaded = ConfigStore(fileURL: url, openFolders: { [] }, sessionFolders: { [] })
+    reloaded.adoptFound(["/Users/example/Projects/alpha"])
+    #expect(reloaded.config.projects.isEmpty)
+}
+
+@Test @MainActor func addingAForgottenProjectByHandBringsItBack() {
+    let url = tempConfigURL()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+
+    let store = ConfigStore(fileURL: url, openFolders: { [] }, sessionFolders: { [] })
+    store.adoptFound(["/Users/example/Projects/alpha"])
+    store.removeProject(path: "/Users/example/Projects/alpha")
+
+    store.upsertProject(ProjectConfig(path: "/Users/example/Projects/alpha", name: "alpha"))
+    #expect(store.config.projects.map(\.name) == ["alpha"])
+    #expect(store.config.forgottenPaths.isEmpty)
+}

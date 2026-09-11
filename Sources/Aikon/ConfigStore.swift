@@ -134,6 +134,29 @@ final class ConfigStore: ObservableObject {
         } else {
             updated.projects.append(project)
         }
+        // Adding a forgotten folder by hand is the way back for it.
+        let key = ProjectMatching.normalize(project.path)
+        updated.forgottenPaths.removeAll { ProjectMatching.normalize($0) == key }
+        config = updated
+        save()
+    }
+
+    /// Adds every folder the menu found (a live session or an open VS Code
+    /// window) that the list doesn't have yet, so it can be named and given
+    /// an icon without a trip through "Add". Never pinned: finding a folder
+    /// changes nothing in the menu. Folders removed by hand stay out — see
+    /// `AppConfig.forgottenPaths`. Runs on every refresh, so it writes only
+    /// when something was actually added.
+    func adoptFound(_ paths: [String]) {
+        var known = Set(config.projects.map { ProjectMatching.normalize($0.path) })
+        let forgotten = Set(config.forgottenPaths.map(ProjectMatching.normalize))
+        var updated = config
+        for path in paths {
+            let key = ProjectMatching.normalize(path)
+            guard !forgotten.contains(key), known.insert(key).inserted else { continue }
+            updated.projects.append(ProjectConfig(path: key, name: URL(fileURLWithPath: key).lastPathComponent))
+        }
+        guard updated != config else { return }
         config = updated
         save()
     }
@@ -148,9 +171,12 @@ final class ConfigStore: ObservableObject {
         save()
     }
 
+    /// Removing by hand is for good: the folder is remembered so the next
+    /// refresh doesn't find it and put it straight back — see `adoptFound`.
     func removeProject(path: String) {
         var updated = config
         updated.projects.removeAll { $0.path == path }
+        if !updated.forgottenPaths.contains(path) { updated.forgottenPaths.append(path) }
         config = updated
         save()
     }

@@ -108,6 +108,25 @@ private func realFolder(in root: URL, name: String) throws -> String {
     }
 }
 
+/// Whatever the menu finds shows up in Settings too, so it can be named and
+/// given an icon without being added by hand — and it isn't pinned by it.
+@Test @MainActor func refreshAddsAFoundSessionFolderToTheSettingsList() throws {
+    try withSandbox { sandbox in
+        let now = Date()
+        let path = try realFolder(in: sandbox.root, name: "found-project")
+        try writeTranscript(in: try sessionFolder(in: sandbox.root), cwd: path,
+                            mtime: now, lastLine: workingLine)
+
+        let model = throwawayModel(sandbox)
+        model.refresh(now: now)
+
+        let listed = sandbox.configStore.config.projects
+        #expect(listed.map { ProjectMatching.normalize($0.path) }.contains(path))
+        #expect(listed.allSatisfy { !$0.pinned })
+        #expect(model.pinnedProjects.isEmpty)
+    }
+}
+
 /// The required case from the audit: two transcripts for the same folder —
 /// a service launch and the real window — must collapse into a single row,
 /// and the live one must win over the merely-finished one even though it's

@@ -91,6 +91,10 @@ struct AppConfig: Codable, Equatable {
     /// — it's just the last thing GitHub reported, not a "there's an update"
     /// flag; that comparison happens where it's displayed.
     var latestKnownVersion: String?
+    /// Folders removed from the Projects list by hand. `ConfigStore.adoptFound`
+    /// adds whatever the menu finds, and without this a removed project would
+    /// be back on the next refresh. Adding one by hand takes it off again.
+    var forgottenPaths: [String]
 
     static let defaultSessionsPath = "~/.claude/projects"
 
@@ -103,7 +107,8 @@ struct AppConfig: Codable, Equatable {
          recentEmojis: [String] = [],
          checkForUpdates: Bool = true,
          lastUpdateCheckAt: Date? = nil,
-         latestKnownVersion: String? = nil) {
+         latestKnownVersion: String? = nil,
+         forgottenPaths: [String] = []) {
         self.version = version
         self.menuMode = menuMode
         self.language = language
@@ -114,6 +119,7 @@ struct AppConfig: Codable, Equatable {
         self.checkForUpdates = checkForUpdates
         self.lastUpdateCheckAt = lastUpdateCheckAt
         self.latestKnownVersion = latestKnownVersion
+        self.forgottenPaths = forgottenPaths
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -121,7 +127,7 @@ struct AppConfig: Codable, Equatable {
         // here so decoding can still find it in a config written by an
         // older version of the app (see `init(from:)` below).
         case version, menuMode, showAllVSCodeWindows, language, launchAtLogin, sessionsPath, projects, recentEmojis,
-             checkForUpdates, lastUpdateCheckAt, latestKnownVersion
+             checkForUpdates, lastUpdateCheckAt, latestKnownVersion, forgottenPaths
     }
 
     // Every field falls back to its default when missing, so a config file
@@ -158,6 +164,7 @@ struct AppConfig: Codable, Equatable {
         checkForUpdates = try c.decodeIfPresent(Bool.self, forKey: .checkForUpdates) ?? true
         lastUpdateCheckAt = try c.decodeIfPresent(Date.self, forKey: .lastUpdateCheckAt)
         latestKnownVersion = try c.decodeIfPresent(String.self, forKey: .latestKnownVersion)
+        forgottenPaths = try c.decodeIfPresent([String].self, forKey: .forgottenPaths) ?? []
     }
 
     // Written by hand (rather than relying on synthesis) because
@@ -175,6 +182,7 @@ struct AppConfig: Codable, Equatable {
         try c.encode(checkForUpdates, forKey: .checkForUpdates)
         try c.encodeIfPresent(lastUpdateCheckAt, forKey: .lastUpdateCheckAt)
         try c.encodeIfPresent(latestKnownVersion, forKey: .latestKnownVersion)
+        try c.encode(forgottenPaths, forKey: .forgottenPaths)
     }
 
     /// First launch, no config file yet: seed one from what's actually visible

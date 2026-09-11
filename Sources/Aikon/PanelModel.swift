@@ -220,11 +220,17 @@ final class PanelModel: ObservableObject {
         finished = sessions.filter { $0.status == .finished }.sorted { $0.since > $1.since }
         working  = sessions.filter { $0.status == .working  }.sorted { $0.since > $1.since }
 
+        let openFolders = OpenWindows.folders()
+        // Everything found here is offered in Settings too, so it can be named
+        // and given an icon without being added by hand. The menu below still
+        // works from `config`, read before this, and nothing found is pinned.
+        configStore.adoptFound(sessions.map(\.path).sorted() + openFolders.sorted())
+
         // Folders open in VS Code with no session of their own — governed by
         // menuMode, and never includes a folder already shown above.
         idleProjects = ProjectMatching.idleProjects(config: config,
                                                      sessionPaths: Set(sessions.map(\.path)),
-                                                     openFolders: OpenWindows.folders())
+                                                     openFolders: openFolders)
         // Last group in the menu, and only the quiet ones: a pinned project that
         // has a live session — or is already listed as an open VS Code window —
         // is shown above, and must not appear twice.

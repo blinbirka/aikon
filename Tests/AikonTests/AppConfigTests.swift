@@ -14,7 +14,8 @@ import Foundation
         launchAtLogin: true,
         projects: [ProjectConfig(path: "/Users/example/Projects/alpha", name: "Alpha",
                                  emoji: "🚀", iconPath: "~/icons/alpha.png",
-                                 pinned: true, hidden: false)])
+                                 pinned: true, hidden: false)],
+        forgottenPaths: ["/Users/example/Projects/old"])
     try written.write(to: url)
 
     let data = try Data(contentsOf: url)
@@ -36,6 +37,7 @@ import Foundation
     #expect(config.projects.first?.hidden == false)
     #expect(config.projects.first?.emoji == nil)
     #expect(config.projects.first?.iconPath == nil)
+    #expect(config.forgottenPaths.isEmpty)
 }
 
 @Test func legacyShowAllVSCodeWindowsTrueBecomesPinnedMode() throws {
