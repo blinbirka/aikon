@@ -120,8 +120,7 @@ struct MenuView: View {
                         .font(.system(size: 13))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
-                .modifier(FooterRowSkin())
+                .buttonStyle(FooterRowStyle())
             }
 
             Button {
@@ -132,9 +131,8 @@ struct MenuView: View {
                     .font(.system(size: 13))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FooterRowStyle())
             .keyboardShortcut(",", modifiers: .command)
-            .modifier(FooterRowSkin())
 
             Button {
                 NSApp.terminate(nil)
@@ -143,8 +141,7 @@ struct MenuView: View {
                     .font(.system(size: 13))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.plain)
-            .modifier(FooterRowSkin())
+            .buttonStyle(FooterRowStyle())
         }
     }
 
@@ -205,25 +202,35 @@ private struct RowSkin: ViewModifier {
     }
 }
 
-/// Same look as `RowSkin` (hover highlight, rounded corners) but without its
-/// own tap handling — footer rows are real buttons/links that already
-/// handle their own taps, so adding another `onTapGesture` on top would
-/// fire alongside (and race) the button's own action.
-private struct FooterRowSkin: ViewModifier {
-    @State private var hovered = false
+/// Same look as `RowSkin` (hover highlight, rounded corners) for the footer's
+/// real buttons, without `RowSkin`'s tap gesture racing the button's action.
+///
+/// A button style, not a modifier wrapped around the button: from outside,
+/// the padding and highlight belonged to the row but not to the button, so
+/// the whole row lit up on hover while only a click on the text itself did
+/// anything. Inside the style they are part of what the button hit-tests.
+private struct FooterRowStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        FooterRow(label: configuration.label)
+    }
 
-    func body(content: Content) -> some View {
-        content
-            .padding(.vertical, 5)
-            .padding(.horizontal, 7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(hovered ? Color.accentColor : Color.clear)
-            )
-            .foregroundStyle(hovered ? Color.white : Color.primary)
-            .contentShape(Rectangle())
-            .onHover { hovered = $0 }
+    private struct FooterRow: View {
+        let label: ButtonStyleConfiguration.Label
+        @State private var hovered = false
+
+        var body: some View {
+            label
+                .padding(.vertical, 5)
+                .padding(.horizontal, 7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(hovered ? Color.accentColor : Color.clear)
+                )
+                .foregroundStyle(hovered ? Color.white : Color.primary)
+                .contentShape(Rectangle())
+                .onHover { hovered = $0 }
+        }
     }
 }
 
