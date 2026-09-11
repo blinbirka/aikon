@@ -35,6 +35,7 @@
 
 /* Settings window: sidebar */
 "settings.brand.name" = "Aikon";
+"settings.window.title" = "Aikon Settings";
 "settings.nav.tagline" = "menu bar";
 "settings.nav.projects" = "Projects";
 "settings.nav.settings" = "Settings";

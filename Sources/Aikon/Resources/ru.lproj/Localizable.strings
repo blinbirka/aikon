@@ -35,6 +35,7 @@
 
 /* Окно настроек: сайдбар */
 "settings.brand.name" = "Aikon";
+"settings.window.title" = "Настройки Aikon";
 "settings.nav.tagline" = "меню-бар";
 "settings.nav.projects" = "Проекты";
 "settings.nav.settings" = "Настройки";

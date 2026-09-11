@@ -11,9 +11,11 @@ final class AikonAppDelegate: NSObject, NSApplicationDelegate {
     /// built from AppKit now and needs it before any scene exists.
     let model = PanelModel()
     private var statusBar: StatusBarController?
+    private var settings: SettingsWindowCoordinator?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.applicationIconImage = AppIcon.image
+        settings = SettingsWindowCoordinator(configStore: model.configStore)
         statusBar = StatusBarController(model: model)
     }
 
@@ -36,24 +38,23 @@ struct AikonApp: App {
     @NSApplicationDelegateAdaptor(AikonAppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        // Exists only to host `@Environment(\.openSettings)` — see
-        // `SettingsWindowCoordinator`. Must be declared before `Settings`
-        // below so the environment value is available by the time the
-        // menu's "Settings…" row can ask for it.
-        Window("", id: "aikon-settings-opener") {
-            SettingsWindowOpener()
-        }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
-        .defaultSize(width: 1, height: 1)
-
         // No `MenuBarExtra`: its label cannot hold coloured symbols next to
         // numbers, and no arrangement of images or text gets around that —
         // see `StatusItemLabel`. `StatusBarController` puts a live view in a
         // status item of its own instead, from `applicationDidFinishLaunching`.
 
-        Settings {
-            SettingsView(configStore: appDelegate.model.configStore)
-        }
+        // No real scene either: the Settings window is AppKit's too — see
+        // `SettingsWindowCoordinator`. An `App` needs one scene, and an empty
+        // `Settings` is the one that shows nothing; its menu item is replaced
+        // so ⌘, reaches the real window while Settings is open.
+        Settings { EmptyView() }
+            .commands {
+                CommandGroup(replacing: .appSettings) {
+                    Button(L.string("menu.settings")) {
+                        NotificationCenter.default.post(name: .aikonOpenSettings, object: nil)
+                    }
+                    .keyboardShortcut(",")
+                }
+            }
     }
 }

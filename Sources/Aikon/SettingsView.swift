@@ -19,7 +19,7 @@ enum AppVersion {
 // MARK: - Sections
 
 /// The window opened from the menu bar's "Settings…" item (⌘,) — see
-/// `SettingsWindowCoordinator` for why it isn't a plain `SettingsLink`.
+/// `SettingsWindowCoordinator` for why AppKit owns it, not a `Settings` scene.
 /// A hand-built sidebar (not `List`) switches between three sections; the
 /// system's list-selection tint can't be recolored away from the user's
 /// system accent color, and the approved design calls for a neutral
