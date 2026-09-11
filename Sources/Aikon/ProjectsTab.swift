@@ -99,10 +99,12 @@ struct ProjectsSettingsTab: View {
         panel.canChooseFiles = true
         panel.allowsMultipleSelection = false
         panel.allowedContentTypes = [.image]
-        guard panel.runModal() == .OK, let url = panel.url,
-              var project = configStore.config.projects.first(where: { $0.path == path }) else { return }
-        project.iconPath = url.path
-        configStore.upsertProject(project)
+        panel.beginOnSettingsWindow { url in
+            guard let url,
+                  var project = configStore.config.projects.first(where: { $0.path == path }) else { return }
+            project.iconPath = url.path
+            configStore.upsertProject(project)
+        }
     }
 
     private func removePicture(for path: String) {

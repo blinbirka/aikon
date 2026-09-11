@@ -71,5 +71,26 @@ final class SettingsWindowCoordinator: NSObject, NSWindowDelegate {
         return window
     }
 
-    private static let frameName = "aikon-settings"
+    static let frameName = "aikon-settings"
+}
+
+extension NSOpenPanel {
+    /// Shows the panel as a sheet on the Settings window, or free-standing
+    /// if that window isn't there. Free-standing, it opened behind other
+    /// apps whenever Aikon had lost frontmost status by then, and was
+    /// reported doing exactly that; a sheet hangs off its window and can't
+    /// get lost behind anything.
+    func beginOnSettingsWindow(_ completion: @escaping @MainActor (URL?) -> Void) {
+        guard let window = NSApp.windows.first(where: {
+            $0.frameAutosaveName == SettingsWindowCoordinator.frameName
+        }) else {
+            completion(runModal() == .OK ? url : nil)
+            return
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        beginSheetModal(for: window) { response in
+            completion(response == .OK ? self.url : nil)
+        }
+    }
 }
