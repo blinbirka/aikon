@@ -100,10 +100,8 @@ struct ProjectsSettingsTab: View {
         panel.allowsMultipleSelection = false
         panel.allowedContentTypes = [.image]
         panel.beginOnSettingsWindow { url in
-            guard let url,
-                  var project = configStore.config.projects.first(where: { $0.path == path }) else { return }
-            project.iconPath = url.path
-            configStore.upsertProject(project)
+            guard let url else { return }
+            configStore.setPicture(from: url, for: path)
         }
     }
 

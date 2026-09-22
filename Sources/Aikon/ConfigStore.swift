@@ -57,6 +57,40 @@ final class ConfigStore: ObservableObject {
         }
         config = decoded
         loadFailed = false
+        adoptOutsidePictures()
+    }
+
+    private var iconsDirectory: URL {
+        fileURL.deletingLastPathComponent().appending(path: "icons")
+    }
+
+    /// Replaces the picture of `path`'s project with a copy of `source` kept
+    /// next to the config, so the logo outlives the original file.
+    func setPicture(from source: URL, for path: String) {
+        guard var project = config.projects.first(where: { $0.path == path }) else { return }
+        project.iconPath = ProjectIcon.importFile(at: source, into: iconsDirectory) ?? source.path
+        upsertProject(project)
+    }
+
+    /// Logos picked before pictures were copied still point at the user's own
+    /// files. Copy each one in while it still exists; a path whose file is
+    /// already gone is left alone.
+    private func adoptOutsidePictures() {
+        let dir = iconsDirectory.standardizedFileURL.path + "/"
+        var updated = config
+        var changed = false
+        for i in updated.projects.indices {
+            guard let iconPath = updated.projects[i].iconPath, !iconPath.isEmpty else { continue }
+            let expanded = URL(filePath: (iconPath as NSString).expandingTildeInPath).standardizedFileURL
+            guard !expanded.path.hasPrefix(dir),
+                  FileManager.default.fileExists(atPath: expanded.path),
+                  let copy = ProjectIcon.importFile(at: expanded, into: iconsDirectory) else { continue }
+            updated.projects[i].iconPath = copy
+            changed = true
+        }
+        guard changed else { return }
+        config = updated
+        save()
     }
 
     func save() { save(config) }

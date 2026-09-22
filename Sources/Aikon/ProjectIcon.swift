@@ -43,4 +43,22 @@ enum ProjectIcon {
             return nil
         }
     }
+
+    /// Copies a picture the user picked into `directory` and returns the
+    /// copy's path. The original may sit in Downloads or on the Desktop and
+    /// get moved or deleted later — storing its own path is how logos used
+    /// to vanish.
+    static func importFile(at source: URL, into directory: URL = iconsDirectory) -> String? {
+        let ext = source.pathExtension.isEmpty ? "png" : source.pathExtension
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let url = directory.appending(path: "\(UUID().uuidString).\(ext)")
+            try FileManager.default.copyItem(at: source, to: url)
+            return url.path
+        } catch {
+            FileHandle.standardError.write(
+                Data("aikon: couldn't copy icon \(source.path): \(error)\n".utf8))
+            return nil
+        }
+    }
 }

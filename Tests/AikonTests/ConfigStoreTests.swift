@@ -162,3 +162,52 @@ private func tempConfigURL() -> URL {
     #expect(store.config.projects.map(\.name) == ["alpha"])
     #expect(store.config.forgottenPaths.isEmpty)
 }
+
+// A picture picked from Downloads or Desktop used to be stored by its original
+// path, so moving or deleting that file made the project's logo vanish.
+@Test @MainActor func pickedPictureSurvivesTheOriginalBeingDeleted() throws {
+    let url = tempConfigURL()
+    let root = url.deletingLastPathComponent()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = ConfigStore(fileURL: url, openFolders: { [] }, sessionFolders: { [] })
+    let original = root.appending(path: "Downloads/logo.png")
+    try FileManager.default.createDirectory(at: original.deletingLastPathComponent(),
+                                            withIntermediateDirectories: true)
+    try Data("png bytes".utf8).write(to: original)
+    store.upsertProject(ProjectConfig(path: "/Users/example/alpha", name: "Alpha"))
+
+    store.setPicture(from: original, for: "/Users/example/alpha")
+    try FileManager.default.removeItem(at: original)
+
+    let stored = try #require(store.config.projects.first?.iconPath)
+    #expect(stored.hasPrefix(root.appending(path: "icons").path))
+    #expect((try? Data(contentsOf: URL(filePath: stored))) == Data("png bytes".utf8))
+}
+
+// Logos already picked before the fix still point outside; they get copied in
+// on load while the originals are still there.
+@Test @MainActor func existingOutsidePicturesAreCopiedInOnLoad() throws {
+    let url = tempConfigURL()
+    let root = url.deletingLastPathComponent()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let original = root.appending(path: "Desktop/logo.png")
+    try FileManager.default.createDirectory(at: original.deletingLastPathComponent(),
+                                            withIntermediateDirectories: true)
+    try Data("old logo".utf8).write(to: original)
+    var config = AppConfig()
+    config.projects = [
+        ProjectConfig(path: "/Users/example/alpha", name: "Alpha", iconPath: original.path),
+        ProjectConfig(path: "/Users/example/beta", name: "Beta", iconPath: "/nowhere/gone.png"),
+    ]
+    try config.write(to: url)
+
+    let store = ConfigStore(fileURL: url, openFolders: { [] }, sessionFolders: { [] })
+    try FileManager.default.removeItem(at: original)
+
+    let alpha = try #require(store.config.projects.first { $0.name == "Alpha" }?.iconPath)
+    #expect((try? Data(contentsOf: URL(filePath: alpha))) == Data("old logo".utf8))
+    // A path whose file is already gone is left as is — nothing to copy.
+    #expect(store.config.projects.first { $0.name == "Beta" }?.iconPath == "/nowhere/gone.png")
+    let reloaded = ConfigStore(fileURL: url, openFolders: { [] }, sessionFolders: { [] })
+    #expect(reloaded.config.projects.first { $0.name == "Alpha" }?.iconPath == alpha)
+}
