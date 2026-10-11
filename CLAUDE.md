@@ -10,7 +10,9 @@ bash scripts/install.sh
 ```
 
 Builds a universal release, assembles and signs `Aikon.app`, replaces
-`/Applications/Aikon.app`, and checks the signature afterwards. The script
+`/Applications/Aikon.app`, checks the signature, starts the new app and
+deletes the leftover copy in `build/`. The version number comes from the
+latest git tag, and `Info.plist` records the commit as `AikonCommit`. The script
 refuses to run and says why if the machine is missing something.
 
 Requirements it checks: macOS 14+, Xcode command line tools, Swift 6.0+.
@@ -58,6 +60,12 @@ Uncommitted changes never reach a release build. Commit first, then release.
 - **The app is signed ad-hoc at the end of `bundle.sh`, after every file is in
   place.** Copying anything into the bundle afterwards invalidates the
   signature, and macOS then refuses the app as damaged with no way around it.
+- **A change to the app is not done until it is installed.** Committing to
+  main does not put the fix in front of the user; `bash scripts/install.sh`
+  does. A logo fix once sat on main for three weeks while an older build kept
+  running. `scripts/check-installed.sh` is wired up as a Claude Code Stop hook
+  on the maintainer's machine and blocks finishing while `/Applications`
+  lacks main's latest app commit.
 - **The update check is a single unauthenticated GET to the GitHub releases
   API, at most once every three days, switchable off in Settings.** Nothing
   else leaves the machine. If that ever changes, `README.md`, `README.ru.md`,

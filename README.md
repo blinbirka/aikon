@@ -71,7 +71,7 @@ fractions and reset times as unix seconds. No file, no block in the menu.
 bash scripts/install.sh
 ```
 
-That builds a universal app, signs it and puts it in `/Applications`. Needs
+That builds a universal app, signs it, puts it in `/Applications` and starts it. Needs
 Swift 6, which comes with Xcode 16 or newer. No dependencies. The built app is
 about 3.5 MB, the release zip about 1 MB.
 

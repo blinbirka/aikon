@@ -36,7 +36,12 @@ fi
 
 # --- Build and install ---------------------------------------------------
 
-bash scripts/bundle.sh
+# Stamp the latest release number, not bundle.sh's 0.1.0 default: an app that
+# thinks it is 0.1.0 offers to "update" to the last release, which can be
+# older than this checkout.
+version="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+version="${version#v}"
+bash scripts/bundle.sh "${version:-0.1.0}"
 
 DEST="/Applications/Aikon.app"
 
@@ -49,6 +54,12 @@ cp -R build/Aikon.app "$DEST"
 codesign --verify --deep --strict "$DEST" || \
     fail "the installed app at $DEST failed codesign verification — do not run it, please file an issue"
 
-echo "installed: $DEST"
+# The copy left in build/ is a second launchable Aikon; once it was the one
+# running for weeks while fixes landed in newer builds nobody opened.
+rm -rf build/Aikon.app
+
+open "$DEST"
+
+echo "installed and started: $DEST"
 echo "Turn on login-at-startup and the session-status hook from inside the app: Settings."
 echo "Aikon has no Dock icon — look for it in the menu bar."

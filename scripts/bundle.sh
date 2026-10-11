@@ -6,6 +6,10 @@ set -euo pipefail
 
 VERSION="${1:-0.1.0}"
 APP="build/Aikon.app"
+# Which commit this app was built from, so scripts/check-installed.sh can tell
+# whether the installed app has caught up with main. "unknown" when there is
+# no repository, as in the git-archive copy scripts/release.sh builds from.
+COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 
 # Universal by default so the app runs on Intel Macs too. If this toolchain has
 # no x86_64 SDK, fall back to a native build rather than failing the release.
@@ -44,6 +48,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$VERSION</string>
+  <key>AikonCommit</key><string>$COMMIT</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>LSUIElement</key><true/>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
